@@ -191,18 +191,22 @@ export default function AdminPage() {
 
         {/* --- MODAL (POPUP) --- */}
         {selectedRequest && (
-          <div className="fixed inset-0 bg-blue-950/40 backdrop-blur-sm flex items-center justify-center z-50 p-6">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-300">
-              <div className="bg-blue-900 p-8 text-white flex justify-between items-center">
+          <div className="fixed inset-0 bg-blue-950/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            {/* Added max-h-[90vh] and flex flex-col to keep the header/footer visible */}
+            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
+              
+              {/* HEADER: shrink-0 keeps it at the top */}
+              <div className="bg-blue-900 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
                 <h3 className="font-black uppercase tracking-tighter text-2xl">Processing</h3>
                 <button onClick={() => setSelectedRequest(null)} className="text-white/50 hover:text-white text-2xl">×</button>
               </div>
               
-              <div className="p-10 space-y-8">
+              {/* SCROLLABLE CONTENT: This is where the long purpose text lives */}
+              <div className="p-8 md:p-10 space-y-8 overflow-y-auto flex-1">
                 <div className="flex justify-between items-end border-b pb-6 border-slate-100">
                   <div>
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Full Name</label>
-                    <p className="text-2xl font-black text-slate-800">{selectedRequest.full_name}</p>
+                    <p className="text-2xl font-black text-slate-800 leading-tight">{selectedRequest.full_name}</p>
                   </div>
                   <div className="text-right">
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Age</label>
@@ -215,44 +219,50 @@ export default function AdminPage() {
                 <div className="grid grid-cols-2 gap-8">
                   <div>
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Document</label>
-                    <p className="font-black text-slate-700 uppercase">{selectedRequest.service_type}</p>
+                    <p className="font-black text-slate-700 uppercase text-xs">{selectedRequest.service_type}</p>
                   </div>
                   <div>
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Date</label>
-                    <p className="font-black text-slate-700 uppercase">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
+                    <p className="font-black text-slate-700 uppercase text-xs">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-6 rounded-[30px] border border-blue-100 max-h-[200px] overflow-y-auto">
-  <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 block text-center">
-    Encoded Purpose
-  </label>
-  <p className="text-blue-900 leading-relaxed font-bold text-center text-lg italic uppercase tracking-tighter break-words overflow-wrap-anywhere">
-    &quot;{selectedRequest.purpose?.substring(0, 100) || "No details provided"}&quot;
-  </p>
-  {selectedRequest.purpose?.length > 100 && (
-    <p className="text-[8px] text-center mt-2 text-blue-300 font-bold uppercase italic">
-      (Text limited to 100 characters)
-    </p>
-  )}
-</div>
-
-                <div className="pt-4 flex flex-col gap-3">
-                  {selectedRequest.status === 'pending' && (
-                    <button 
-                      onClick={() => updateRequestStatus(selectedRequest.id, 'ready')}
-                      className="w-full bg-blue-600 text-white py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl shadow-blue-200 transition-all active:scale-95"
-                    >
-                      Approve & Mark Ready
-                    </button>
+                <div className="bg-blue-50 p-6 rounded-[30px] border border-blue-100">
+                  <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 block text-center">
+                    Encoded Purpose
+                  </label>
+                  <p className="text-blue-900 leading-relaxed font-bold text-center text-sm italic uppercase tracking-tighter break-all">
+                    &quot;{selectedRequest.purpose?.substring(0, 100) || "No details provided"}&quot;
+                  </p>
+                  {selectedRequest.purpose && selectedRequest.purpose.length > 100 && (
+                    <p className="text-[8px] text-center mt-2 text-blue-300 font-bold uppercase italic">
+                      (Limit: 100 characters)
+                    </p>
                   )}
-                  <button onClick={() => setSelectedRequest(null)} className="w-full bg-slate-100 text-slate-400 py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest">Close</button>
                 </div>
+              </div>
+
+              {/* FOOTER: Fixed at the bottom */}
+              <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-3">
+                {selectedRequest.status === 'pending' && (
+                  <button 
+                    onClick={() => updateRequestStatus(selectedRequest.id, 'ready')}
+                    className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl active:scale-95 transition-all"
+                  >
+                    Approve & Mark Ready
+                  </button>
+                )}
+                <button 
+                  onClick={() => setSelectedRequest(null)} 
+                  className="w-full bg-white border border-slate-200 text-slate-400 py-3 md:py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>
         )}
-      </div>
+      </div> {/* This closes max-w-6xl */}
     </div>
   );
 }
