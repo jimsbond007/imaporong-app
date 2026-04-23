@@ -223,12 +223,19 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div className="bg-blue-50 p-6 rounded-[30px] border border-blue-100">
-                  <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 block text-center">Encoded Purpose</label>
-                  <p className="text-blue-900 leading-relaxed font-bold text-center text-lg italic uppercase tracking-tighter">
-                    &quot;{selectedRequest.purpose || "No details provided"}&quot;
-                  </p>
-                </div>
+                <div className="bg-blue-50 p-6 rounded-[30px] border border-blue-100 max-h-[200px] overflow-y-auto">
+  <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 block text-center">
+    Encoded Purpose
+  </label>
+  <p className="text-blue-900 leading-relaxed font-bold text-center text-lg italic uppercase tracking-tighter break-words overflow-wrap-anywhere">
+    &quot;{selectedRequest.purpose?.substring(0, 100) || "No details provided"}&quot;
+  </p>
+  {selectedRequest.purpose?.length > 100 && (
+    <p className="text-[8px] text-center mt-2 text-blue-300 font-bold uppercase italic">
+      (Text limited to 100 characters)
+    </p>
+  )}
+</div>
 
                 <div className="pt-4 flex flex-col gap-3">
                   {selectedRequest.status === 'pending' && (
