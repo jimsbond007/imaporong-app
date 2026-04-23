@@ -17,26 +17,34 @@ export default function Home() {
     setLoading(true);
     
     if (isLogin) {
-      // --- LOGIN LOGIC ---
+      // --- LOGIN LOGIC (Checks Role for Redirect) ---
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      
       if (error) {
         alert(error.message);
       } else if (data?.user) {
+        // Fetch the role from the 'profiles' table
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
-        router.push(profile?.role === 'admin' ? '/admin' : '/dashboard');
+
+        // REDIRECT LOGIC
+        if (profile?.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard');
+        }
       }
     } else {
-      // --- SIGN UP LOGIC (DATABASE PUSH FIXED) ---
+      // --- SIGN UP LOGIC (Pushes everything to Profiles table) ---
       const { data, error: authError } = await supabase.auth.signUp({ email, password });
 
       if (authError) {
         alert(authError.message);
       } else if (data.user) {
-        // Pushing Name, Address, and auto-generating a BID Number
+        // This creates the actual record in your database
         const { error: profileError } = await supabase
           .from('profiles')
           .insert([
@@ -44,7 +52,7 @@ export default function Home() {
               id: data.user.id, 
               full_name: fullName, 
               address: address,
-              role: 'resident',
+              role: 'resident', // Default role
               is_verified: false,
               bid_number: `BID-2026-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
             }
@@ -52,10 +60,13 @@ export default function Home() {
 
         if (profileError) {
           console.error(profileError);
-          alert("Auth created, but database entry failed.");
+          alert("Auth created, but profile database entry failed.");
         } else {
           alert("Registration successful! You can now log in.");
           setIsLogin(true);
+          // Clear inputs for security
+          setFullName('');
+          setAddress('');
         }
       }
     }
@@ -63,7 +74,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900 scroll-smooth">
+    <div className="min-h-screen bg-white font-sans text-slate-900">
       {/* NAVIGATION */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-2">
@@ -86,8 +97,8 @@ export default function Home() {
             CULTURE. <br />
             <span className="text-orange-500 italic text-5xl md:text-7xl underline decoration-yellow-400">HARVEST.</span>
           </h2>
-          <p className="text-lg text-slate-600 font-medium leading-relaxed mb-8 max-w-md font-bold">
-            Welcome to <span className="text-green-800">Barangay Maporong</span>. Sign up today to access your digital ID and barangay services.
+          <p className="text-lg text-slate-600 font-bold leading-relaxed mb-8 max-w-md">
+            The future of <span className="text-green-800">Barangay Maporong</span> is digital. Access IDs, documents, and services in one place.
           </p>
           <div className="flex gap-4">
             <a href="#portal" className="inline-block bg-green-800 text-white px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-105 transition-transform">
@@ -124,6 +135,7 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleAuth} className="space-y-4">
+            {/* NAME & ADDRESS (Sign Up Only) */}
             {!isLogin && (
               <>
                 <div className="space-y-1">
@@ -138,7 +150,7 @@ export default function Home() {
                   <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Home Address</label>
                   <input 
                     type="text" placeholder="Purok, Street, Maporong"
-                    className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
+                    className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold shadow-inner"
                     value={address} onChange={(e) => setAddress(e.target.value)} required
                   />
                 </div>
