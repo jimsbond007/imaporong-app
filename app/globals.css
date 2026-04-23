@@ -1,0 +1,22 @@
+@import "tailwindcss";
+
+/* This forces the background to be white and text to be dark regardless of system settings */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  background-color: white !important;
+  color: #171717;
+  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure Tailwind's base styles are loaded */
+@layer base {
+  img {
+    display: inline-block;
+  }
+}
