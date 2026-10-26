@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { useRouter } from 'next/navigation';
 
 interface Resident {
   id: string;
@@ -23,6 +24,7 @@ interface ServiceRequest {
 }
 
 export default function AdminPage() {
+  const router = useRouter();
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
   const [activeTab, setActiveTab] = useState<'residents' | 'requests'>('residents');
   const [residents, setResidents] = useState<Resident[]>([]);
@@ -68,7 +70,6 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, []);
 
@@ -101,15 +102,27 @@ export default function AdminPage() {
     else fetchData();
   };
 
-  if (loading) return <div className="p-20 text-center font-black text-blue-900 animate-pulse">LOADING...</div>;
+  if (loading) return <div className="p-20 text-center font-black text-blue-900 animate-pulse">LOADING ADMIN PORTAL...</div>;
 
   return (
-    <div className="p-6 md:p-10 text-black bg-slate-50 min-h-screen">
+    <div className="p-6 md:p-10 text-black bg-slate-50 min-h-screen font-sans">
       <div className="max-w-6xl mx-auto pb-20">
         
-        <header className="mb-8 text-center md:text-left">
-          <h1 className="text-4xl font-black text-blue-900 uppercase tracking-tighter italic">Maporong Admin</h1>
-          <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em]">Barangay Information System</p>
+        {/* --- HEADER WITH SWITCH TO RESIDENT VIEW --- */}
+        <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-black text-blue-900 uppercase tracking-tighter italic">Maporong Admin</h1>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em]">Barangay Information System</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => router.push('/dashboard')}
+              className="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all shadow-md active:scale-95 flex items-center gap-2"
+            >
+              <span></span> Switch to Resident Page
+            </button>
+          </div>
         </header>
 
         {/* --- STATS --- */}
@@ -140,68 +153,79 @@ export default function AdminPage() {
 
         {activeTab === 'residents' ? (
           <div className="bg-white border rounded-[32px] overflow-hidden shadow-xl border-slate-100">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
-                <tr><th className="p-6">Full Name</th><th className="p-6">Address</th><th className="p-6 text-right">Actions</th></tr>
-              </thead>
-              <tbody>
-                {residents.map((p) => (
-                  <tr key={p.id} className="border-b last:border-0 hover:bg-slate-50/50">
-                    <td className="p-6 font-bold text-slate-800">{p.full_name}</td>
-                    <td className="p-6 text-slate-500 text-sm">{p.address}</td>
-                    <td className="p-6 text-right flex justify-end gap-3">
-                      <button onClick={() => deleteResident(p.id, p.full_name)} className="text-red-400 hover:text-red-600 font-black text-[10px] uppercase px-3 py-1">Delete</button>
-                      <button onClick={() => approveResident(p.id)} className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-green-100 hover:bg-green-700 active:scale-95 transition">Approve</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {residents.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-bold text-sm">
+                No pending resident account verifications.
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
+                  <tr><th className="p-6">Full Name</th><th className="p-6">Address</th><th className="p-6 text-right">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {residents.map((p) => (
+                    <tr key={p.id} className="border-b last:border-0 hover:bg-slate-50/50">
+                      <td className="p-6 font-bold text-slate-800">{p.full_name}</td>
+                      <td className="p-6 text-slate-500 text-sm">{p.address}</td>
+                      <td className="p-6 text-right flex justify-end gap-3">
+                        <button onClick={() => deleteResident(p.id, p.full_name)} className="text-red-400 hover:text-red-600 font-black text-[10px] uppercase px-3 py-1">Delete</button>
+                        <button onClick={() => approveResident(p.id)} className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-green-100 hover:bg-green-700 active:scale-95 transition">Approve</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         ) : (
           <div className="bg-white border rounded-[32px] overflow-hidden shadow-xl border-slate-100">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
-                <tr><th className="p-6">Resident</th><th className="p-6">Service</th><th className="p-6">Status</th><th className="p-6 text-right">Actions</th></tr>
-              </thead>
-              <tbody>
-                {requests.map((r) => (
-                  <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                    <td className="p-6 font-bold text-slate-800">{r.full_name}</td>
-                    <td className="p-6">
-                      <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-blue-100">{r.service_type}</span>
-                    </td>
-                    <td className="p-6">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="p-6 text-right flex justify-end items-center gap-4">
-                      <button onClick={() => setSelectedRequest(r)} className="bg-slate-900 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">View Details</button>
-                      <button onClick={() => deleteRequest(r.id)} className="text-slate-300 hover:text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            {requests.length === 0 ? (
+              <div className="p-12 text-center text-slate-400 font-bold text-sm">
+                No service requests submitted yet.
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
+                  <tr><th className="p-6">Resident</th><th className="p-6">Service</th><th className="p-6">Status</th><th className="p-6 text-right">Actions</th></tr>
+                </thead>
+                <tbody>
+                  {requests.map((r) => (
+                    <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
+                      <td className="p-6 font-bold text-slate-800">{r.full_name}</td>
+                      <td className="p-6">
+                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-blue-100">{r.service_type}</span>
+                      </td>
+                      <td className="p-6">
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="p-6 text-right flex justify-end items-center gap-4">
+                        <button onClick={() => setSelectedRequest(r)} className="bg-slate-900 text-white px-5 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">View Details</button>
+                        <button onClick={() => deleteRequest(r.id)} className="text-slate-300 hover:text-red-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
         {/* --- MODAL (POPUP) --- */}
         {selectedRequest && (
           <div className="fixed inset-0 bg-blue-950/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            {/* Added max-h-[90vh] and flex flex-col to keep the header/footer visible */}
             <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
               
-              {/* HEADER: shrink-0 keeps it at the top */}
+              {/* HEADER */}
               <div className="bg-blue-900 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
                 <h3 className="font-black uppercase tracking-tighter text-2xl">Processing</h3>
                 <button onClick={() => setSelectedRequest(null)} className="text-white/50 hover:text-white text-2xl">×</button>
               </div>
               
-              {/* SCROLLABLE CONTENT: This is where the long purpose text lives */}
+              {/* SCROLLABLE CONTENT */}
               <div className="p-8 md:p-10 space-y-8 overflow-y-auto flex-1">
                 <div className="flex justify-between items-end border-b pb-6 border-slate-100">
                   <div>
@@ -242,7 +266,7 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* FOOTER: Fixed at the bottom */}
+              {/* FOOTER */}
               <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-3">
                 {selectedRequest.status === 'pending' && (
                   <button 
@@ -262,7 +286,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
-      </div> {/* This closes max-w-6xl */}
+      </div>
     </div>
   );
 }
