@@ -11,6 +11,8 @@ export default function RequestForm() {
   
   const [formData, setFormData] = useState({
     full_name: '',
+    sex: 'Male',
+    civil_status: 'Single',
     birthday: '',
     age: '',
     address: '',
@@ -19,7 +21,6 @@ export default function RequestForm() {
     request_for: ''
   });
 
-  // Calculate age dynamically from birthday
   const calculateAge = (birthDateString: string): string => {
     if (!birthDateString) return '';
     const today = new Date();
@@ -32,7 +33,6 @@ export default function RequestForm() {
     return age > 0 ? age.toString() : '';
   };
 
-  // Auto-fill profile details if user is logged in
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +43,7 @@ export default function RequestForm() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, birthday, age, address')
+        .select('full_name, sex, civil_status, birthday, age, address')
         .eq('id', user.id)
         .single();
 
@@ -54,6 +54,8 @@ export default function RequestForm() {
         setFormData((prev) => ({
           ...prev,
           full_name: profile.full_name || '',
+          sex: profile.sex || 'Male',
+          civil_status: profile.civil_status || 'Single',
           birthday: birthdayVal,
           age: computedAge,
           address: profile.address || '',
@@ -64,7 +66,6 @@ export default function RequestForm() {
     fetchProfile();
   }, [router]);
 
-  // Handle birthday change and update age automatically
   const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBirthday = e.target.value;
     const computedAge = calculateAge(newBirthday);
@@ -117,7 +118,6 @@ export default function RequestForm() {
     <div className="min-h-screen bg-slate-50 p-6 text-slate-900 font-sans">
       <div className="max-w-xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
         
-        {/* Header */}
         <div className="bg-green-700 p-6 text-white">
           <button 
             type="button" 
@@ -129,14 +129,12 @@ export default function RequestForm() {
           <h1 className="text-2xl font-black uppercase tracking-tight">Document Request</h1>
         </div>
 
-        {/* Feedback Message */}
         {feedback && (
           <div className={`p-4 mx-8 mt-6 rounded-2xl text-xs font-bold ${feedback.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
             {feedback.message}
           </div>
         )}
 
-        {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 gap-4">
           
           {/* Service Type */}
@@ -154,7 +152,7 @@ export default function RequestForm() {
             </select>
           </div>
 
-          {/* Personal Info */}
+          {/* Full Name & Age */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase">Full Name</label>
@@ -177,6 +175,34 @@ export default function RequestForm() {
                 value={formData.age} 
                 onChange={(e) => setFormData({ ...formData, age: e.target.value })} 
               />
+            </div>
+          </div>
+
+          {/* Sex & Civil Status */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Sex</label>
+              <select 
+                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
+                value={formData.sex}
+                onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
+              >
+                <option>Male</option>
+                <option>Female</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase">Civil Status</label>
+              <select 
+                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
+                value={formData.civil_status}
+                onChange={(e) => setFormData({ ...formData, civil_status: e.target.value })}
+              >
+                <option>Single</option>
+                <option>Married</option>
+                <option>Widowed</option>
+                <option>Separated</option>
+              </select>
             </div>
           </div>
 
@@ -204,16 +230,16 @@ export default function RequestForm() {
             />
           </div>
 
-          {/* Purpose with Max Character Count */}
+          {/* Purpose */}
           <div>
             <div className="flex justify-between items-center mb-1">
               <label className="text-xs font-bold text-slate-500 uppercase">Purpose of Request</label>
-              <span className="text-[10px] font-bold text-slate-400">{formData.purpose.length}/100</span>
+              <span className="text-[10px] font-bold text-slate-400">{formData.purpose.length}/200</span>
             </div>
             <input 
               type="text" 
               required 
-              maxLength={100}
+              maxLength={200}
               placeholder="e.g. Local Employment, Scholarship" 
               className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
               value={formData.purpose} 
@@ -233,7 +259,6 @@ export default function RequestForm() {
             />
           </div>
 
-          {/* Submit Button */}
           <button 
             type="submit" 
             disabled={loading}
