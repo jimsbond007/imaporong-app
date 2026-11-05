@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
+import FeedbackModal from '../components/FeedbackModal';
 
 export default function Home() {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export default function Home() {
   const [gender, setGender] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [authDialog, setAuthDialog] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   const router = useRouter();
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -24,7 +26,7 @@ export default function Home() {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) {
-        alert(error.message);
+        setAuthDialog({ type: 'error', title: 'Login Failed', message: error.message });
       } else if (data?.user) {
         // Fetch the role from the 'profiles' table
         const { data: profile, error: profileError } = await supabase
@@ -36,14 +38,22 @@ export default function Home() {
         if (profileError || !profile) {
           console.error('Could not load signed-in user role:', profileError);
           await supabase.auth.signOut();
-          alert('Your account role could not be verified. Please contact the barangay administrator.');
+          setAuthDialog({
+            type: 'error',
+            title: 'Account Role Could Not Be Verified',
+            message: 'Please contact the barangay administrator.',
+          });
         } else if (profile.role === 'admin') {
           router.push('/admin');
         } else if (profile.role === 'resident') {
           router.push('/dashboard');
         } else {
           await supabase.auth.signOut();
-          alert('This account does not have an authorized portal role.');
+          setAuthDialog({
+            type: 'error',
+            title: 'Unauthorized Account',
+            message: 'This account does not have an authorized portal role.',
+          });
         }
       }
     } else {
@@ -51,7 +61,7 @@ export default function Home() {
       const { data, error: authError } = await supabase.auth.signUp({ email, password });
 
       if (authError) {
-        alert(authError.message);
+        setAuthDialog({ type: 'error', title: 'Registration Failed', message: authError.message });
       } else if (data.user) {
         // This creates the actual record in your database
         const { error: profileError } = await supabase
@@ -71,15 +81,19 @@ export default function Home() {
 
         if (profileError) {
           console.error(profileError);
-          alert("Auth created, but profile database entry failed.");
+          setAuthDialog({
+            type: 'error',
+            title: 'Profile Could Not Be Saved',
+            message: 'Your account was created, but the profile database entry failed.',
+          });
         } else {
-          alert("Registration successful! You can now log in.");
           setIsLogin(true);
           // Clear inputs for security
           setFullName('');
           setAddress('');
           setAge('');
           setGender('');
+          setAuthDialog({ type: 'success', title: 'Registration Successful', message: 'You can now log in to your account.' });
         }
       }
     }
@@ -88,6 +102,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-slate-900">
+      {authDialog && (
+        <FeedbackModal
+          title={authDialog.title}
+          message={authDialog.message}
+          type={authDialog.type}
+          onClose={() => setAuthDialog(null)}
+        />
+      )}
       {/* NAVIGATION */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-2">

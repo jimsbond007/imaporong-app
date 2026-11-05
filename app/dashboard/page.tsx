@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
 import { getRequestSlipNumber } from '../../components/RequestSlip';
+import FeedbackModal from '../../components/FeedbackModal';
 
 interface Profile {
   full_name: string;
@@ -31,6 +32,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [savingImage, setSavingImage] = useState(false);
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
+  const [requestToHide, setRequestToHide] = useState<ServiceRequest | null>(null);
+  const [historyNotice, setHistoryNotice] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   const [showIdModal, setShowIdModal] = useState(false);
   const idCardRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -95,11 +98,9 @@ export default function Dashboard() {
     window.print();
   };
 
-  const handleHideCompletedRequest = async (request: ServiceRequest) => {
-    if (!window.confirm('Remove this completed request from your history? It will remain visible in the administrator calendar.')) {
-      return;
-    }
-
+  const handleHideRequest = async () => {
+    if (!requestToHide) return;
+    const request = requestToHide;
     setDeletingRequestId(request.id);
     const { error } = await supabase.rpc('hide_completed_request_from_resident', {
       p_request_id: request.id,
@@ -107,13 +108,24 @@ export default function Dashboard() {
 
     if (error) {
       console.error('Could not remove completed request from resident history:', error);
-      alert(`Could not remove this request from your history: ${error.message}`);
+      setRequestToHide(null);
+      setHistoryNotice({
+        type: 'error',
+        title: 'Could Not Remove Request',
+        message: `This request could not be removed from your history. ${error.message}`,
+      });
       setDeletingRequestId(null);
       return;
     }
 
     setRequests((current) => current.filter((item) => item.id !== request.id));
+    setRequestToHide(null);
     setDeletingRequestId(null);
+    setHistoryNotice({
+      type: 'success',
+      title: 'Request Removed',
+      message: 'This request was removed from your history. The record remains visible in the administrator calendar.',
+    });
   };
 
   const handleSaveImage = async () => {
@@ -128,7 +140,11 @@ export default function Dashboard() {
       link.click();
     } catch (error) {
       console.error("Failed to export ID image:", error);
-      alert("Could not generate ID image. Please try printing instead.");
+      setHistoryNotice({
+        type: 'error',
+        title: 'Could Not Save ID',
+        message: 'Could not generate the ID image. Please try printing instead.',
+      });
     } finally {
       setSavingImage(false);
     }
@@ -274,14 +290,14 @@ export default function Dashboard() {
                         </td>
                         <td className="p-6 text-slate-400 text-sm">{new Date(r.created_at).toLocaleDateString()}</td>
                         <td className="p-6 text-right">
-                          {r.status === 'received' && (
+                          {(r.status === 'received' || r.status === 'rejected') && (
                             <button
                               type="button"
-                              onClick={() => handleHideCompletedRequest(r)}
+                              onClick={() => setRequestToHide(r)}
                               disabled={deletingRequestId === r.id}
                               className="rounded-lg border border-rose-200 px-3 py-2 text-[10px] font-black uppercase text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
                             >
-                              {deletingRequestId === r.id ? 'Removing...' : 'Remove'}
+                              {deletingRequestId === r.id ? 'Removing...' : 'Delete History'}
                             </button>
                           )}
                         </td>
@@ -408,6 +424,27 @@ export default function Dashboard() {
             }
           `}</style>
         </div>
+      )}
+
+      {requestToHide && (
+        <FeedbackModal
+          title="Delete Request History?"
+          message={`Remove this ${requestToHide.status === 'rejected' ? 'rejected' : 'completed'} request from your history? This only hides it from your account; it will remain in the administrator calendar.`}
+          type="warning"
+          confirmLabel="Delete History"
+          busy={deletingRequestId === requestToHide.id}
+          onConfirm={handleHideRequest}
+          onClose={() => setRequestToHide(null)}
+        />
+      )}
+
+      {historyNotice && (
+        <FeedbackModal
+          title={historyNotice.title}
+          message={historyNotice.message}
+          type={historyNotice.type}
+          onClose={() => setHistoryNotice(null)}
+        />
       )}
     </div>
   );

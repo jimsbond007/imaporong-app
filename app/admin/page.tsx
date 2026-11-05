@@ -6,6 +6,7 @@ import { toPng } from 'html-to-image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import RequestSlip, { getRequestSlipNumber } from '../../components/RequestSlip';
+import FeedbackModal from '../../components/FeedbackModal';
 
 interface Resident {
   id: string;
@@ -94,6 +95,8 @@ export default function AdminPage() {
   const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null);
   const [residentForm, setResidentForm] = useState({ full_name: '', address: '', age: '', gender: '' });
   const [residentFeedback, setResidentFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [residentNotice, setResidentNotice] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [adminNotice, setAdminNotice] = useState<{ title: string; message: string } | null>(null);
   const [residentLoading, setResidentLoading] = useState(false);
   const residentImportRef = useRef<HTMLInputElement>(null);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -113,6 +116,11 @@ export default function AdminPage() {
     processedToday: 0
   });
 
+  const showResidentFeedback = (feedback: { type: 'error' | 'success'; message: string }) => {
+    setResidentFeedback(feedback);
+    setResidentNotice(feedback);
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -123,7 +131,7 @@ export default function AdminPage() {
 
       if (residentResult.error) {
         console.error('Resident registry fetch failed:', residentResult.error);
-        setResidentFeedback({
+        showResidentFeedback({
           type: 'error',
           message: `Could not load the resident registry. Apply the resident registry migration in Supabase. ${residentResult.error.message}`,
         });
@@ -169,7 +177,7 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error("Fetch error:", err);
-      setResidentFeedback({
+      showResidentFeedback({
         type: 'error',
         message: 'Could not load resident records. Please try again or contact the administrator.',
       });
@@ -226,7 +234,7 @@ export default function AdminPage() {
         .eq('id', resident.profile_id);
       if (error) {
         console.error('Failed to verify resident account:', error);
-        setResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
+        showResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
         return;
       }
     } else {
@@ -236,13 +244,13 @@ export default function AdminPage() {
         .eq('id', resident.id);
       if (error) {
         console.error('Failed to verify resident record:', error);
-        setResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
+        showResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
         return;
       }
     }
 
     await fetchData();
-    setResidentFeedback({ type: 'success', message: `${resident.full_name} is verified as a bona fide resident.` });
+    showResidentFeedback({ type: 'success', message: `${resident.full_name} is verified as a bona fide resident.` });
   };
 
   const openNewResidentForm = () => {
@@ -276,20 +284,20 @@ export default function AdminPage() {
 
     if (error) {
       console.error('Failed to remove resident registry record:', error);
-      setResidentFeedback({ type: 'error', message: `Could not remove resident record: ${error.message}` });
+      showResidentFeedback({ type: 'error', message: `Could not remove resident record: ${error.message}` });
       return;
     }
 
     setResidentToDelete(null);
     await fetchData();
-    setResidentFeedback({ type: 'success', message: `${residentToDelete.full_name} was removed from the resident registry.` });
+    showResidentFeedback({ type: 'success', message: `${residentToDelete.full_name} was removed from the resident registry.` });
   };
 
   const saveResident = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const age = residentForm.age.trim() ? Number(residentForm.age) : null;
     if (age !== null && (!Number.isInteger(age) || age < 0 || age > 120)) {
-      setResidentFeedback({ type: 'error', message: 'Enter a valid age between 0 and 120.' });
+      showResidentFeedback({ type: 'error', message: 'Enter a valid age between 0 and 120.' });
       return;
     }
 
@@ -311,7 +319,7 @@ export default function AdminPage() {
 
     if (error) {
       console.error('Failed to save resident record:', error);
-      setResidentFeedback({ type: 'error', message: `Could not save resident: ${error.message}` });
+      showResidentFeedback({ type: 'error', message: `Could not save resident: ${error.message}` });
       return;
     }
 
@@ -319,7 +327,7 @@ export default function AdminPage() {
     const successMessage = editingResident ? 'Resident record updated.' : 'Resident record added.';
     setEditingResident(null);
     await fetchData();
-    setResidentFeedback({ type: 'success', message: successMessage });
+    showResidentFeedback({ type: 'success', message: successMessage });
   };
 
   const importResidentRoster = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -332,7 +340,7 @@ export default function AdminPage() {
       const text = (await file.text()).replace(/^\uFEFF/, '');
       const rows = text.split(/\r?\n/).filter((row) => row.trim()).map(parseCsvRow);
       if (rows.length < 2) {
-        setResidentFeedback({ type: 'error', message: 'The CSV must include a header row and at least one resident.' });
+        showResidentFeedback({ type: 'error', message: 'The CSV must include a header row and at least one resident.' });
         return;
       }
 
@@ -396,7 +404,7 @@ export default function AdminPage() {
         return;
       }
       if (!entries.length) {
-        setResidentFeedback({ type: 'error', message: 'No new residents found in the CSV.' });
+        showResidentFeedback({ type: 'error', message: 'No new residents found in the CSV.' });
         return;
       }
 
@@ -405,15 +413,15 @@ export default function AdminPage() {
       setResidentLoading(false);
       if (error) {
         console.error('Failed to import resident roster:', error);
-        setResidentFeedback({ type: 'error', message: `Could not import roster: ${error.message}` });
+        showResidentFeedback({ type: 'error', message: `Could not import roster: ${error.message}` });
         return;
       }
 
       await fetchData();
-      setResidentFeedback({ type: 'success', message: `Imported ${entries.length} resident record(s).` });
+      showResidentFeedback({ type: 'success', message: `Imported ${entries.length} resident record(s).` });
     } catch (error) {
       console.error('Failed to read resident roster:', error);
-      setResidentFeedback({ type: 'error', message: 'Could not read the file. Please upload a valid CSV roster.' });
+      showResidentFeedback({ type: 'error', message: 'Could not read the file. Please upload a valid CSV roster.' });
     } finally {
       setResidentLoading(false);
     }
@@ -484,7 +492,7 @@ export default function AdminPage() {
       .eq('id', id);
 
     if (error) {
-      alert("Error archiving request: " + error.message);
+      setAdminNotice({ title: 'Could Not Archive Request', message: error.message });
     } else {
       fetchData();
       setSelectedRequest(null);
@@ -548,7 +556,7 @@ export default function AdminPage() {
       link.click();
     } catch (err) {
       console.error('Failed to download request slip:', err);
-      alert('Could not generate the slip image. Please try printing instead.');
+      setAdminNotice({ title: 'Could Not Download Slip', message: 'Could not generate the slip image. Please try printing instead.' });
     }
   };
 
@@ -1378,6 +1386,24 @@ export default function AdminPage() {
               </div>
             </section>
           </div>
+        )}
+
+        {residentNotice && (
+          <FeedbackModal
+            title={residentNotice.type === 'success' ? 'Success' : 'Something Went Wrong'}
+            message={residentNotice.message}
+            type={residentNotice.type}
+            onClose={() => setResidentNotice(null)}
+          />
+        )}
+
+        {adminNotice && (
+          <FeedbackModal
+            title={adminNotice.title}
+            message={adminNotice.message}
+            type="error"
+            onClose={() => setAdminNotice(null)}
+          />
         )}
 
       </div>

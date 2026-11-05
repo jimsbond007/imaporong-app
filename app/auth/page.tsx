@@ -3,12 +3,14 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import FeedbackModal from '../../components/FeedbackModal';
 
 export default function AuthPage() {
  const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [authDialog, setAuthDialog] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
   const [fullName, setFullName] = useState('');
    const [age, setAge] = useState('');
    const [gender, setGender] = useState('');
@@ -28,7 +30,7 @@ export default function AuthPage() {
       });
 
       if (error) {
-        alert(error.message);
+        setAuthDialog({ type: 'error', title: 'Registration Failed', message: error.message });
       } else if (data.user) {
         // 2. Create the Resident Profile automatically
         const { error: profileError } = await supabase.from('profiles').insert([
@@ -44,17 +46,21 @@ export default function AuthPage() {
         ]);
         if (profileError) {
           console.error('Failed to create resident profile:', profileError);
-          alert(`Your account was created, but the resident profile could not be saved: ${profileError.message}`);
+          setAuthDialog({
+            type: 'error',
+            title: 'Profile Could Not Be Saved',
+            message: `Your account was created, but the resident profile could not be saved: ${profileError.message}`,
+          });
         } else {
-          alert("Registration successful! You can now log in.");
           setIsSignUp(false);
+          setAuthDialog({ type: 'success', title: 'Registration Successful', message: 'Your account is ready. You can now log in.' });
         }
       }
     } else {
       // Log In
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        alert(error.message);
+        setAuthDialog({ type: 'error', title: 'Login Failed', message: error.message });
       } else if (data.user) {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
@@ -65,14 +71,22 @@ export default function AuthPage() {
         if (profileError || !profile) {
           console.error('Could not load signed-in user role:', profileError);
           await supabase.auth.signOut();
-          alert('Your account role could not be verified. Please contact the barangay administrator.');
+          setAuthDialog({
+            type: 'error',
+            title: 'Account Role Could Not Be Verified',
+            message: 'Please contact the barangay administrator.',
+          });
         } else if (profile.role === 'admin') {
           router.replace('/admin');
         } else if (profile.role === 'resident') {
           router.replace('/dashboard');
         } else {
           await supabase.auth.signOut();
-          alert('This account does not have an authorized portal role.');
+          setAuthDialog({
+            type: 'error',
+            title: 'Unauthorized Account',
+            message: 'This account does not have an authorized portal role.',
+          });
         }
       }
     }
@@ -191,6 +205,14 @@ export default function AuthPage() {
                 </svg>
               </button>
             </div>
+            {authDialog && (
+              <FeedbackModal
+                title={authDialog.title}
+                message={authDialog.message}
+                type={authDialog.type}
+                onClose={() => setAuthDialog(null)}
+              />
+            )}
           </div>
 
           <button 
