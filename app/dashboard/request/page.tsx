@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import { getRequestSlipNumber } from '../../../components/RequestSlip';
 
 export default function RequestForm() {
   const router = useRouter();
@@ -128,16 +129,20 @@ export default function RequestForm() {
 
       // The database trigger normally generates this. Keep a safe fallback
       // for databases that have the column but not the trigger yet.
-      let slipNumber = inserted?.slip_number;
-      if (!slipNumber) {
-        const slipDate = inserted?.created_at ? new Date(inserted.created_at) : new Date();
-        slipNumber = `REQ-${slipDate.getFullYear()}-${String(slipDate.getTime()).slice(-6)}`;
+      const slipNumber = getRequestSlipNumber({
+        id: inserted?.id,
+        slip_number: inserted?.slip_number,
+        created_at: inserted?.created_at,
+      });
 
-        if (inserted?.id) {
-          await supabase
-            .from('service_requests')
-            .update({ slip_number: slipNumber })
-            .eq('id', inserted.id);
+      if (inserted?.id && inserted.slip_number !== slipNumber) {
+        const { error: updateError } = await supabase
+          .from('service_requests')
+          .update({ slip_number: slipNumber })
+          .eq('id', inserted.id);
+
+        if (updateError) {
+          console.error('Failed to save request slip number:', updateError);
         }
       }
 

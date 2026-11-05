@@ -21,14 +21,13 @@ export interface RequestSlipData {
 }
 
 export function getRequestSlipNumber(request: RequestSlipData): string {
-  if (request.slip_number) return request.slip_number;
+  const requestId = request.id?.replace(/-/g, '').toUpperCase();
+  if (requestId && /^[0-9A-F]+$/.test(requestId)) return `RQS-${requestId}`;
 
-  const date = request.created_at ? new Date(request.created_at) : new Date();
-  const validDate = !Number.isNaN(date.getTime());
-  const year = validDate ? date.getFullYear() : new Date().getFullYear();
-  const timestamp = validDate ? date.getTime() : Date.now();
+  const date = request.created_at ? new Date(request.created_at) : null;
+  const fallbackCode = date && !Number.isNaN(date.getTime()) ? date.getTime().toString(16).toUpperCase() : '0';
 
-  return `REQ-${year}-${String(timestamp).slice(-6)}`;
+  return `RQS-${fallbackCode}`;
 }
 
 function formatDate(value?: string | null): string {
@@ -103,6 +102,18 @@ export default function RequestSlip({
         <SlipField label="Service requested" value={request.service_type} wide />
         <SlipField label="Purpose" value={request.purpose} wide />
         <SlipField label="Date requested" value={formatDate(request.created_at)} />
+      </div>
+
+      <div className="mt-6 border-t-2 border-black pt-4">
+        <p className="mb-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Receiving Details</p>
+        <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <SlipField label="Received By" />
+          <SlipField label="Date Received" />
+        </div>
+        <div className="mt-6">
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Signature</p>
+          <div className="h-10 border-b border-black" />
+        </div>
       </div>
     </div>
   );

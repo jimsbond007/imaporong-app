@@ -207,6 +207,7 @@ export default function AdminPage() {
 
   const openSlip = (request: ServiceRequest) => {
     setSelectedRequest(null);
+    setSelectedDateRequests(null);
     setSlipRequest(request);
   };
 
