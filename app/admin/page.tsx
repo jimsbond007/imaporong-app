@@ -564,6 +564,69 @@ export default function AdminPage() {
     }
   };
 
+  const printSlip = async () => {
+    if (!slipRef.current) return;
+
+    try {
+      // Render the slip to a high-resolution image, then print it from a
+      // dedicated frame. This avoids browser print CSS quirks and always
+      // prints the selected slip regardless of which tab opened it.
+      const dataUrl = await toPng(slipRef.current, {
+        cacheBust: true,
+        pixelRatio: 3,
+        backgroundColor: '#ffffff',
+      });
+
+      const frame = document.createElement('iframe');
+      frame.setAttribute('aria-hidden', 'true');
+      frame.style.position = 'fixed';
+      frame.style.right = '0';
+      frame.style.bottom = '0';
+      frame.style.width = '0';
+      frame.style.height = '0';
+      frame.style.border = '0';
+      document.body.appendChild(frame);
+
+      const frameWindow = frame.contentWindow;
+      const frameDocument = frameWindow?.document;
+      if (!frameWindow || !frameDocument) {
+        frame.remove();
+        throw new Error('Print frame unavailable');
+      }
+
+      frameDocument.open();
+      frameDocument.write(`<!doctype html><html><head><title>Request Slip</title><style>
+        @page { size: A4 portrait; margin: 12mm; }
+        html, body { margin: 0; padding: 0; background: #ffffff; }
+        img { display: block; width: 100%; height: auto; }
+      </style></head><body><img src="${dataUrl}" alt="Request Slip" /></body></html>`);
+      frameDocument.close();
+
+      const cleanup = () => frame.remove();
+      frameWindow.onafterprint = cleanup;
+
+      const triggerPrint = () => {
+        frameWindow.focus();
+        frameWindow.print();
+        window.setTimeout(cleanup, 60000);
+      };
+
+      const image = frameDocument.querySelector('img');
+      if (image && !image.complete) {
+        image.addEventListener('load', triggerPrint, { once: true });
+        image.addEventListener('error', () => {
+          cleanup();
+          setAdminNotice({ title: 'Could Not Print Slip', message: 'The slip image could not be prepared. Please try again.' });
+        }, { once: true });
+      } else {
+        triggerPrint();
+      }
+    } catch (err) {
+      console.error('Failed to print request slip:', err);
+      setAdminNotice({ title: 'Could Not Print Slip', message: 'Could not prepare the slip for printing. Please try again.' });
+    }
+  };
+
   if (accessDenied) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6 font-sans">
@@ -1209,7 +1272,7 @@ export default function AdminPage() {
 
               <div className="p-4 md:p-6 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3">
                 <button
-                  onClick={() => window.print()}
+                  onClick={printSlip}
                   className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all active:scale-95"
                 >
                   Print Slip

@@ -22,17 +22,20 @@ export interface RequestSlipData {
 
 export function getRequestSlipNumber(request: RequestSlipData): string {
   const savedNumber = request.slip_number?.trim();
-  if (savedNumber && /^RQS-[A-Z0-9]{1,4}$/i.test(savedNumber)) {
+  if (savedNumber && /^RQS-[0-9A-F]{8}$/i.test(savedNumber)) {
     return savedNumber.toUpperCase();
   }
 
+  // UUIDs are hexadecimal, so the first 8 characters make a short, stable code.
   const requestId = request.id?.replace(/-/g, '').toUpperCase();
-  if (requestId && /^[0-9A-F]+$/.test(requestId)) return `RQS-${requestId.slice(-4)}`;
+  if (requestId && /^[0-9A-F]{8,}$/.test(requestId)) {
+    return `RQS-${requestId.slice(0, 8)}`;
+  }
 
   const date = request.created_at ? new Date(request.created_at) : null;
   const fallbackCode = date && !Number.isNaN(date.getTime())
-    ? date.getTime().toString(36).slice(-4).toUpperCase()
-    : '0000';
+    ? date.getTime().toString(16).toUpperCase().padStart(8, '0').slice(-8)
+    : '00000000';
 
   return `RQS-${fallbackCode}`;
 }
@@ -111,15 +114,32 @@ export default function RequestSlip({
         <SlipField label="Date requested" value={formatDate(request.created_at)} />
       </div>
 
-      <div className="mt-6 border-t-2 border-black pt-4">
-        <p className="mb-3 text-[9px] font-black uppercase tracking-widest text-slate-500">Receiving Details</p>
+      <div className="mt-6 border-t-2 border-black pt-5">
         <div className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
-          <SlipField label="Received By" />
-          <SlipField label="Date Received" />
+          <div>
+            <SlipField label="Received by" />
+            <p className="mt-1 text-[8px] font-bold uppercase tracking-wide text-slate-500">
+              Name and signature / Duty Officer
+            </p>
+          </div>
+          <SlipField label="Date & Time Received" />
         </div>
-        <div className="mt-6">
-          <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Signature</p>
-          <div className="h-10 border-b border-black" />
+
+        <div className="mt-5 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+          <SlipField label="Request Approved / Disapproved" />
+          <SlipField label="Reason for disapproval" />
+        </div>
+
+        <div className="mt-8 flex justify-end">
+          <div className="w-full sm:w-64">
+            <div className="h-12 border-b border-black" />
+            <p className="mt-1 text-center text-[8px] font-black uppercase tracking-widest text-slate-600">
+              Name and Signature
+            </p>
+            <p className="text-center text-[8px] font-bold uppercase tracking-widest text-slate-500">
+              Punong Barangay
+            </p>
+          </div>
         </div>
       </div>
     </div>
