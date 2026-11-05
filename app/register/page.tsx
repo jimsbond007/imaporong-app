@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase';
 export default function Register() {
   const [fullName, setFullName] = useState('');
   const [address, setAddress] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -20,6 +22,8 @@ export default function Register() {
         { 
           full_name: fullName, 
           address: address, 
+          age: Number(age),
+          gender,
           is_verified: false // Always false by default
         },
       ]);
@@ -30,6 +34,8 @@ export default function Register() {
       setMessage("Success! Your application is now pending Admin approval.");
       setFullName('');
       setAddress('');
+      setAge('');
+      setGender('');
     }
     setLoading(false);
   };
@@ -63,6 +69,35 @@ export default function Register() {
               onChange={(e) => setAddress(e.target.value)}
               placeholder="Purok 1, Maporong"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Age</label>
+            <input
+              type="number"
+              min="0"
+              max="120"
+              required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-black"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Gender</label>
+            <select
+              required
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-black"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+            >
+              <option value="" disabled>Select gender</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
           </div>
 
           <button 

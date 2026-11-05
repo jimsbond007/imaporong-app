@@ -9,6 +9,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+   const [age, setAge] = useState('');
+   const [gender, setGender] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -28,11 +30,24 @@ export default function AuthPage() {
         alert(error.message);
       } else if (data.user) {
         // 2. Create the Resident Profile automatically
-        await supabase.from('profiles').insert([
-          { id: data.user.id, full_name: fullName, address: address, is_verified: false }
+        const { error: profileError } = await supabase.from('profiles').insert([
+          {
+            id: data.user.id,
+            full_name: fullName,
+            address,
+            age: Number(age),
+            gender,
+            role: 'resident',
+            is_verified: false,
+          }
         ]);
-        alert("Registration successful! You can now log in.");
-        setIsSignUp(false);
+        if (profileError) {
+          console.error('Failed to create resident profile:', profileError);
+          alert(`Your account was created, but the resident profile could not be saved: ${profileError.message}`);
+        } else {
+          alert("Registration successful! You can now log in.");
+          setIsSignUp(false);
+        }
       }
     } else {
       // Log In
@@ -82,6 +97,33 @@ export default function AuthPage() {
         placeholder="Purok 1, Maporong"
         value={address} onChange={(e) => setAddress(e.target.value)}
       />
+    </div>
+    <div>
+      <label className="text-xs font-bold text-slate-500 uppercase">Age</label>
+      <input
+        type="number"
+        min="0"
+        max="120"
+        required
+        className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none text-black"
+        value={age}
+        onChange={(e) => setAge(e.target.value)}
+      />
+    </div>
+    <div>
+      <label className="text-xs font-bold text-slate-500 uppercase">Gender</label>
+      <select
+        required
+        className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none text-black"
+        value={gender}
+        onChange={(e) => setGender(e.target.value)}
+      >
+        <option value="" disabled>Select gender</option>
+        <option value="Female">Female</option>
+        <option value="Male">Male</option>
+        <option value="Other">Other</option>
+        <option value="Prefer not to say">Prefer not to say</option>
+      </select>
     </div>
   </>
 )}

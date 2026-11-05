@@ -9,6 +9,8 @@ export default function Home() {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState(''); 
   const [address, setAddress] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -53,6 +55,8 @@ export default function Home() {
               id: data.user.id, 
               full_name: fullName, 
               address: address,
+              age: Number(age),
+              gender,
               role: 'resident', // Default role
               is_verified: false,
               bid_number: `BID-2026-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
@@ -68,6 +72,8 @@ export default function Home() {
           // Clear inputs for security
           setFullName('');
           setAddress('');
+          setAge('');
+          setGender('');
         }
       }
     }
@@ -160,6 +166,36 @@ export default function Home() {
                     className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold shadow-inner"
                     value={address} onChange={(e) => setAddress(e.target.value)} required
                   />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Age</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      placeholder="Age"
+                      className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
+                      value={age}
+                      onChange={(event) => setAge(event.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Gender</label>
+                    <select
+                      className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
+                      value={gender}
+                      onChange={(event) => setGender(event.target.value)}
+                      required
+                    >
+                      <option value="" disabled>Select</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
                 </div>
               </>
             )}

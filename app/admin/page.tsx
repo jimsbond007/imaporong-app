@@ -9,10 +9,47 @@ import RequestSlip, { getRequestSlipNumber } from '../../components/RequestSlip'
 
 interface Resident {
   id: string;
+  profile_id: string | null;
   full_name: string;
   address: string;
+  age: number | null;
+  gender: string | null;
   is_verified: boolean;
   bid_number?: string;
+}
+
+function parseCsvRow(row: string): string[] {
+  const cells: string[] = [];
+  let cell = '';
+  let quoted = false;
+
+  for (let index = 0; index < row.length; index += 1) {
+    const character = row[index];
+    if (character === '"' && quoted && row[index + 1] === '"') {
+      cell += '"';
+      index += 1;
+    } else if (character === '"') {
+      quoted = !quoted;
+    } else if (character === ',' && !quoted) {
+      cells.push(cell.trim());
+      cell = '';
+    } else {
+      cell += character;
+    }
+  }
+
+  cells.push(cell.trim());
+  return cells;
+}
+
+function normalizeGender(value: string): string | null {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'female' || normalized === 'male') {
+    return normalized[0].toUpperCase() + normalized.slice(1);
+  }
+  if (normalized === 'other') return 'Other';
+  if (normalized === 'prefer not to say') return 'Prefer not to say';
+  return null;
 }
 
 interface ServiceRequest {
@@ -51,6 +88,13 @@ export default function AdminPage() {
   const slipRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'residents' | 'requests' | 'calendar'>('residents');
   const [residents, setResidents] = useState<Resident[]>([]);
+  const [residentSearch, setResidentSearch] = useState('');
+  const [showResidentForm, setShowResidentForm] = useState(false);
+  const [editingResidentId, setEditingResidentId] = useState<string | null>(null);
+  const [residentForm, setResidentForm] = useState({ full_name: '', address: '', age: '', gender: '' });
+  const [residentFeedback, setResidentFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [residentLoading, setResidentLoading] = useState(false);
+  const residentImportRef = useRef<HTMLInputElement>(null);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [archivedRequests, setArchivedRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -71,38 +115,66 @@ export default function AdminPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data: allProfiles } = await supabase.from('profiles').select('*');
-      const { data: allRequests } = await supabase
-        .from('service_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const [residentResult, requestResult] = await Promise.all([
+        supabase.from('residents').select('*').order('full_name'),
+        supabase.from('service_requests').select('*').order('created_at', { ascending: false }),
+      ]);
 
-      if (allProfiles && allRequests) {
-        setResidents(allProfiles.filter(p => !p.is_verified) as Resident[]);
-        
-        // Active requests strictly exclude received/archived items
-        const activeList = allRequests.filter(r => r.status !== 'received') as ServiceRequest[];
-        const archivedList = allRequests.filter(r => r.status === 'received') as ServiceRequest[];
+      if (residentResult.error) {
+        console.error('Resident registry fetch failed:', residentResult.error);
+        setResidentFeedback({
+          type: 'error',
+          message: `Could not load the resident registry. Apply the resident registry migration in Supabase. ${residentResult.error.message}`,
+        });
+      } else {
+        setResidents((residentResult.data || []) as Resident[]);
+        setResidentFeedback(null);
+        setStats((current) => ({
+          ...current,
+          totalRegistered: residentResult.data?.length || 0,
+          pendingResidents: (residentResult.data || []).filter(p => !p.is_verified).length,
+        }));
+      }
+
+      if (requestResult.error) {
+        console.error('Service request fetch failed:', requestResult.error);
+        return;
+      }
+
+      if (requestResult.data) {
+        const allRequests = requestResult.data;
+
+        // Rejected requests leave the active queue but remain available in history.
+        const activeList = allRequests.filter(
+          r => r.status !== 'received' && r.status !== 'rejected'
+        ) as ServiceRequest[];
+        const archivedList = allRequests.filter(
+          r => r.status === 'received' || r.status === 'rejected'
+        ) as ServiceRequest[];
         
         setRequests(activeList);
         setArchivedRequests(archivedList);
 
         const today = new Date().toDateString();
-        setStats({
-          totalRegistered: allProfiles.length,
-          pendingResidents: allProfiles.filter(p => !p.is_verified).length,
+        setStats((current) => ({
+          ...current,
           activeRequests: activeList.filter(r => r.status === 'pending').length,
           // Count only active ready/claimed requests for today's active completed stats
           processedToday: activeList.filter(r => 
             (r.status === 'ready' || r.status === 'claimed') && 
             new Date(r.created_at).toDateString() === today
           ).length
-        });
+        }));
       }
     } catch (err) {
       console.error("Fetch error:", err);
+      setResidentFeedback({
+        type: 'error',
+        message: 'Could not load resident records. Please try again or contact the administrator.',
+      });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -144,11 +216,219 @@ export default function AdminPage() {
     };
   }, [router]);
 
-  const approveResident = async (id: string) => {
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    const bid = "MPRNG-2026-" + randomNum;
-    const { error } = await supabase.from('profiles').update({ is_verified: true, bid_number: bid }).eq('id', id);
-    if (!error) fetchData();
+  const approveResident = async (resident: Resident) => {
+    if (resident.profile_id) {
+      const bidNumber = `MPRNG-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_verified: true, bid_number: bidNumber })
+        .eq('id', resident.profile_id);
+      if (error) {
+        console.error('Failed to verify resident account:', error);
+        setResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
+        return;
+      }
+    } else {
+      const { error } = await supabase
+        .from('residents')
+        .update({ is_verified: true })
+        .eq('id', resident.id);
+      if (error) {
+        console.error('Failed to verify resident record:', error);
+        setResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
+        return;
+      }
+    }
+
+    await fetchData();
+    setResidentFeedback({ type: 'success', message: `${resident.full_name} is verified as a bona fide resident.` });
+  };
+
+  const deleteResident = async (resident: Resident) => {
+    if (!window.confirm(`Permanently remove ${resident.full_name} from the resident registry?`)) return;
+
+    if (resident.profile_id) {
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', resident.profile_id);
+      if (profileError) {
+        console.error('Failed to remove resident profile:', profileError);
+        setResidentFeedback({ type: 'error', message: `Could not remove resident: ${profileError.message}` });
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('residents').delete().eq('id', resident.id);
+    if (error) {
+      console.error('Failed to remove resident record:', error);
+      setResidentFeedback({ type: 'error', message: `Could not remove resident: ${error.message}` });
+      return;
+    }
+
+    await fetchData();
+  };
+
+  const openNewResidentForm = () => {
+    setEditingResidentId(null);
+    setResidentForm({ full_name: '', address: '', age: '', gender: '' });
+    setResidentFeedback(null);
+    setShowResidentForm(true);
+  };
+
+  const openEditResidentForm = (resident: Resident) => {
+    setEditingResidentId(resident.id);
+    setResidentForm({
+      full_name: resident.full_name,
+      address: resident.address,
+      age: resident.age?.toString() || '',
+      gender: resident.gender || '',
+    });
+    setResidentFeedback(null);
+    setShowResidentForm(true);
+  };
+
+  const saveResident = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const age = residentForm.age.trim() ? Number(residentForm.age) : null;
+    if (age !== null && (!Number.isInteger(age) || age < 0 || age > 120)) {
+      setResidentFeedback({ type: 'error', message: 'Enter a valid age between 0 and 120.' });
+      return;
+    }
+
+    setResidentLoading(true);
+    setResidentFeedback(null);
+    const values = {
+      full_name: residentForm.full_name.trim(),
+      address: residentForm.address.trim(),
+      age,
+      gender: residentForm.gender || null,
+    };
+
+    let error;
+    if (editingResidentId) {
+      const resident = residents.find((record) => record.id === editingResidentId);
+      if (resident?.profile_id) {
+        const result = await supabase.from('profiles').update(values).eq('id', resident.profile_id);
+        error = result.error;
+      } else {
+        const result = await supabase.from('residents').update(values).eq('id', editingResidentId);
+        error = result.error;
+      }
+    } else {
+      const result = await supabase.from('residents').insert(values);
+      error = result.error;
+    }
+    setResidentLoading(false);
+
+    if (error) {
+      console.error('Failed to save resident record:', error);
+      setResidentFeedback({ type: 'error', message: `Could not save resident: ${error.message}` });
+      return;
+    }
+
+    setShowResidentForm(false);
+    const successMessage = editingResidentId ? 'Resident record updated.' : 'Resident record added.';
+    setEditingResidentId(null);
+    await fetchData();
+    setResidentFeedback({ type: 'success', message: successMessage });
+  };
+
+  const importResidentRoster = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setResidentFeedback(null);
+    try {
+      const text = (await file.text()).replace(/^\uFEFF/, '');
+      const rows = text.split(/\r?\n/).filter((row) => row.trim()).map(parseCsvRow);
+      if (rows.length < 2) {
+        setResidentFeedback({ type: 'error', message: 'The CSV must include a header row and at least one resident.' });
+        return;
+      }
+
+      const headers = rows[0].map((header) => header.trim().toLowerCase().replace(/[\s_-]+/g, ''));
+      const nameIndex = headers.findIndex((header) => ['name', 'fullname', 'residentname'].includes(header));
+      const addressIndex = headers.findIndex((header) => ['address', 'homeaddress', 'purok'].includes(header));
+      const ageIndex = headers.findIndex((header) => header === 'age');
+      const genderIndex = headers.findIndex((header) => ['gender', 'sex'].includes(header));
+      if (nameIndex < 0 || addressIndex < 0) {
+        setResidentFeedback({
+          type: 'error',
+          message: 'CSV needs Name and Address columns. Age and Gender columns are optional.',
+        });
+        return;
+      }
+
+      const seen = new Set(residents.map((resident) =>
+        `${resident.full_name.trim().toLowerCase()}|${resident.address.trim().toLowerCase()}`
+      ));
+      const entries: Array<{
+        full_name: string;
+        address: string;
+        age: number | null;
+        gender: string | null;
+      }> = [];
+      const errors: string[] = [];
+
+      rows.slice(1).forEach((row, index) => {
+        const full_name = row[nameIndex]?.trim() || '';
+        const address = row[addressIndex]?.trim() || '';
+        const rowNumber = index + 2;
+        const ageValue = ageIndex >= 0 ? row[ageIndex]?.trim() || '' : '';
+        const age = ageValue ? Number(ageValue) : null;
+        const genderValue = genderIndex >= 0 ? row[genderIndex]?.trim() || '' : '';
+        const gender = genderValue ? normalizeGender(genderValue) : null;
+
+        if (!full_name || !address) {
+          errors.push(`Row ${rowNumber}: name and address are required.`);
+          return;
+        }
+        if (ageValue && (!Number.isInteger(age) || age === null || age < 0 || age > 120)) {
+          errors.push(`Row ${rowNumber}: age must be between 0 and 120.`);
+          return;
+        }
+        if (genderValue && !gender) {
+          errors.push(`Row ${rowNumber}: gender must be Female, Male, Other, or Prefer not to say.`);
+          return;
+        }
+
+        const identity = `${full_name.toLowerCase()}|${address.toLowerCase()}`;
+        if (seen.has(identity)) return;
+        seen.add(identity);
+        entries.push({ full_name, address, age, gender });
+      });
+
+      if (errors.length) {
+        setResidentFeedback({
+          type: 'error',
+          message: `Import stopped without adding records. ${errors.slice(0, 3).join(' ')}${errors.length > 3 ? ` Plus ${errors.length - 3} more issue(s).` : ''}`,
+        });
+        return;
+      }
+      if (!entries.length) {
+        setResidentFeedback({ type: 'error', message: 'No new residents found in the CSV.' });
+        return;
+      }
+
+      setResidentLoading(true);
+      const { error } = await supabase.from('residents').insert(entries);
+      setResidentLoading(false);
+      if (error) {
+        console.error('Failed to import resident roster:', error);
+        setResidentFeedback({ type: 'error', message: `Could not import roster: ${error.message}` });
+        return;
+      }
+
+      await fetchData();
+      setResidentFeedback({ type: 'success', message: `Imported ${entries.length} resident record(s).` });
+    } catch (error) {
+      console.error('Failed to read resident roster:', error);
+      setResidentFeedback({ type: 'error', message: 'Could not read the file. Please upload a valid CSV roster.' });
+    } finally {
+      setResidentLoading(false);
+    }
   };
 
   const updateRequestStatus = async (id: string, newStatus: string) => {
@@ -223,13 +503,6 @@ export default function AdminPage() {
     }
   };
 
-  const deleteResident = async (id: string, name: string) => {
-    if (!confirm(`Permanently delete ${name}?`)) return;
-    const { error } = await supabase.from('profiles').delete().eq('id', id);
-    if (error) alert("Error: " + error.message);
-    else fetchData();
-  };
-
   // Calendar Helpers
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -250,6 +523,24 @@ export default function AdminPage() {
     const dayRequests = getRequestsForDate(day);
     setSelectedDateLabel(dateObj.toLocaleDateString(undefined, { dateStyle: 'full' }));
     setSelectedDateRequests(dayRequests);
+  };
+
+  const searchTerm = residentSearch.trim().toLowerCase();
+  const filteredResidents = residents.filter((resident) =>
+    [resident.full_name, resident.address, resident.gender || '', resident.age?.toString() || '']
+      .some((value) => value.toLowerCase().includes(searchTerm))
+  );
+  const residentDemographics = {
+    female: residents.filter((resident) => resident.gender?.toLowerCase() === 'female').length,
+    male: residents.filter((resident) => resident.gender?.toLowerCase() === 'male').length,
+    otherGender: residents.filter((resident) =>
+      resident.gender && !['female', 'male'].includes(resident.gender.toLowerCase())
+    ).length,
+    noGender: residents.filter((resident) => !resident.gender).length,
+    under18: residents.filter((resident) => resident.age !== null && resident.age < 18).length,
+    adult: residents.filter((resident) => resident.age !== null && resident.age >= 18 && resident.age < 60).length,
+    senior: residents.filter((resident) => resident.age !== null && resident.age >= 60).length,
+    noAge: residents.filter((resident) => resident.age === null).length,
   };
 
   const openSlip = (request: ServiceRequest) => {
@@ -336,10 +627,15 @@ export default function AdminPage() {
 
         {/* STATS */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Residents</p>
+          <button
+            type="button"
+            onClick={() => setActiveTab('residents')}
+            aria-label={`View statistics for ${stats.totalRegistered} resident records`}
+            className="rounded-3xl border border-slate-100 bg-white p-6 text-left shadow-sm transition hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600"
+          >
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Residents · View statistics</p>
             <p className="text-2xl font-black font-display">{stats.totalRegistered}</p>
-          </div>
+          </button>
           <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-orange-500 border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Pending</p>
             <p className="text-2xl font-black font-display text-orange-600">{stats.pendingResidents}</p>
@@ -356,7 +652,7 @@ export default function AdminPage() {
 
         {/* TABS */}
         <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit mb-8 shadow-inner flex-wrap gap-1">
-          <button onClick={() => setActiveTab('residents')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'residents' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Verify Accounts</button>
+          <button onClick={() => setActiveTab('residents')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'residents' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Resident Registry</button>
           <button onClick={() => setActiveTab('requests')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'requests' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Service Requests</button>
           <button onClick={() => setActiveTab('calendar')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'calendar' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Monthly Calendar</button>
         </div>
@@ -364,29 +660,188 @@ export default function AdminPage() {
         {/* TAB 1: RESIDENTS */}
         {activeTab === 'residents' && (
           <div className="bg-white border rounded-[32px] overflow-hidden shadow-xl border-slate-100">
-            {residents.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 font-bold text-sm">
-                No pending resident account verifications.
+            <div className="p-6 md:p-8">
+              <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-2xl font-black font-display text-blue-900">Resident Statistics</h2>
+                  <p className="mt-1 text-sm text-slate-500">Registry includes residents with and without portal accounts.</p>
+                </div>
+                <p className="text-xs font-bold text-slate-500">{stats.pendingResidents} pending bona fide verification</p>
               </div>
-            ) : (
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
-                  <tr><th className="p-6">Full Name</th><th className="p-6">Address</th><th className="p-6 text-right">Actions</th></tr>
-                </thead>
-                <tbody>
-                  {residents.map((p) => (
-                    <tr key={p.id} className="border-b last:border-0 hover:bg-slate-50/50">
-                      <td className="p-6 font-bold text-slate-800">{p.full_name}</td>
-                      <td className="p-6 text-slate-500 text-sm">{p.address}</td>
-                      <td className="p-6 text-right flex justify-end gap-3">
-                        <button onClick={() => deleteResident(p.id, p.full_name)} className="text-red-400 hover:text-red-600 font-black text-[10px] uppercase px-3 py-1">Delete</button>
-                        <button onClick={() => approveResident(p.id)} className="bg-green-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg shadow-green-100 hover:bg-green-700 active:scale-95 transition">Approve</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  ['Female', residentDemographics.female, 'text-pink-700'],
+                  ['Male', residentDemographics.male, 'text-blue-700'],
+                  ['Other / undisclosed', residentDemographics.otherGender + residentDemographics.noGender, 'text-slate-700'],
+                  ['Age 0–17', residentDemographics.under18, 'text-indigo-700'],
+                  ['Age 18–59', residentDemographics.adult, 'text-green-700'],
+                  ['Age 60+', residentDemographics.senior, 'text-orange-700'],
+                  ['Age not provided', residentDemographics.noAge, 'text-slate-500'],
+                  ['Total residents', residents.length, 'text-blue-900'],
+                ].map(([label, count, color]) => (
+                  <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+                    <p className={`mt-1 text-2xl font-black font-display ${color}`}>{count}</p>
+                  </div>
+                ))}
+              </div>
+
+              {residentFeedback && (
+                <p role={residentFeedback.type === 'error' ? 'alert' : 'status'} className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${residentFeedback.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+                  {residentFeedback.message}
+                </p>
+              )}
+
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-black font-display text-slate-800">Resident Records</h3>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    ref={residentImportRef}
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={importResidentRoster}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => residentImportRef.current?.click()}
+                    disabled={residentLoading}
+                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    Import CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openNewResidentForm}
+                    className="rounded-xl bg-green-700 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-white hover:bg-green-800"
+                  >
+                    Add Resident
+                  </button>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">Roster import expects CSV columns: Name, Address, Age, Gender. Excel spreadsheets can be saved as CSV.</p>
+
+              {showResidentForm && (
+                <form onSubmit={saveResident} className="mt-5 grid grid-cols-1 gap-3 rounded-2xl border border-green-100 bg-green-50/50 p-4 md:grid-cols-2">
+                  <h4 className="md:col-span-2 text-sm font-black text-green-900">
+                    {editingResidentId ? 'Edit resident record' : 'Add resident without an account'}
+                  </h4>
+                  <label className="text-xs font-bold text-slate-600">
+                    Full name
+                    <input
+                      required
+                      value={residentForm.full_name}
+                      onChange={(event) => setResidentForm({ ...residentForm, full_name: event.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-slate-600">
+                    Address
+                    <input
+                      required
+                      value={residentForm.address}
+                      onChange={(event) => setResidentForm({ ...residentForm, address: event.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-slate-600">
+                    Age
+                    <input
+                      type="number"
+                      min="0"
+                      max="120"
+                      value={residentForm.age}
+                      onChange={(event) => setResidentForm({ ...residentForm, age: event.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                    />
+                  </label>
+                  <label className="text-xs font-bold text-slate-600">
+                    Gender
+                    <select
+                      value={residentForm.gender}
+                      onChange={(event) => setResidentForm({ ...residentForm, gender: event.target.value })}
+                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                    >
+                      <option value="">Not provided</option>
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </label>
+                  <div className="flex gap-2 md:col-span-2 md:justify-end">
+                    <button type="button" onClick={() => setShowResidentForm(false)} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black uppercase text-slate-600">Cancel</button>
+                    <button type="submit" disabled={residentLoading} className="rounded-xl bg-green-700 px-4 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50">
+                      {residentLoading ? 'Saving...' : 'Save Resident'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              <label className="mt-5 block">
+                <span className="sr-only">Search residents</span>
+                <input
+                  type="search"
+                  value={residentSearch}
+                  onChange={(event) => setResidentSearch(event.target.value)}
+                  placeholder="Search by name, address, age, or gender..."
+                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-green-600"
+                />
+              </label>
+
+              {filteredResidents.length === 0 ? (
+                <div className="p-10 text-center text-sm font-semibold text-slate-400">
+                  {residents.length ? 'No residents match your search.' : 'No resident records yet. Add a resident or import a CSV roster.'}
+                </div>
+              ) : (
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[780px] text-left">
+                    <thead className="border-b bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <tr>
+                        <th className="p-4">Resident</th>
+                        <th className="p-4">Gender</th>
+                        <th className="p-4">Age group</th>
+                        <th className="p-4">Address</th>
+                        <th className="p-4">Account</th>
+                        <th className="p-4">Verification</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredResidents.map((resident) => (
+                        <tr key={resident.id} className="border-b last:border-0 hover:bg-slate-50">
+                          <td className="p-4 font-bold text-slate-800">{resident.full_name}</td>
+                          <td className="p-4 text-sm text-slate-600">{resident.gender || '—'}</td>
+                          <td className="p-4 text-sm text-slate-600">
+                            {resident.age === null ? '—' : resident.age < 18 ? '0–17' : resident.age < 60 ? '18–59' : '60+'}
+                          </td>
+                          <td className="p-4 text-sm text-slate-600">{resident.address}</td>
+                          <td className="p-4">
+                            <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${resident.profile_id ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
+                              {resident.profile_id ? 'Has account' : 'No account'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${resident.is_verified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {resident.is_verified ? 'Verified' : 'Pending'}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex justify-end gap-2">
+                              <button type="button" onClick={() => openEditResidentForm(resident)} className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50">Edit</button>
+                              {!resident.is_verified && (
+                                <button type="button" onClick={() => approveResident(resident)} className="rounded-lg bg-green-700 px-3 py-2 text-[10px] font-black uppercase text-white hover:bg-green-800">Verify</button>
+                              )}
+                              <button type="button" onClick={() => deleteResident(resident)} className="rounded-lg px-2 py-2 text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -416,7 +871,7 @@ export default function AdminPage() {
                       </td>
                       <td className="p-6">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : r.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {r.status}
+                          {r.status === 'rejected' ? 'Rejected' : r.status}
                         </span>
                       </td>
                       <td className="p-6 text-right flex justify-end items-center gap-2">
@@ -742,9 +1197,15 @@ export default function AdminPage() {
                         <p className="text-[9px] text-emerald-700 font-black uppercase tracking-wider mt-1">{getRequestSlipNumber(req)}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${req.status === 'received' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {req.status}
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${req.status === 'received' ? 'bg-slate-200 text-slate-700' : req.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {req.status === 'rejected' ? 'Rejected' : req.status}
                         </span>
+                        {req.status === 'rejected' && req.rejection_reason && (
+                          <p className="basis-full rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs leading-relaxed text-rose-900 sm:basis-auto sm:max-w-xs">
+                            <span className="font-black uppercase tracking-wide">Reason: </span>
+                            {req.rejection_reason}
+                          </p>
+                        )}
                         <button onClick={() => openSlip(req)} className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md transition-all active:scale-95">
                           View / Print
                         </button>

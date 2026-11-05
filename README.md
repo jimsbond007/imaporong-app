@@ -22,7 +22,9 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Supabase database setup
 
-Apply every SQL migration in `supabase/migrations` in filename order before submitting service requests. Run `supabase db push` for a linked project, or execute each migration in the Supabase SQL Editor. The request form requires the request-slip columns and trigger defined by these migrations.
+Apply every SQL migration in `supabase/migrations` in filename order before using the portal. Run `supabase db push` for a linked project, or execute each migration in the Supabase SQL Editor. This includes the resident-registry migration, which adds account-independent resident records and age/gender fields to profiles.
+
+Admins can add residents without portal accounts or import a CSV roster with `Name`, `Address`, `Age`, and `Gender` columns. Excel rosters can be saved as CSV before import. Existing profiles are added to the registry automatically, and matching accountless records are linked when a resident signs up with the same name and address.
 
 ## Learn More
 
