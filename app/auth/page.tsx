@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -47,7 +48,14 @@ export default function AuthPage() {
       <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
         {/* Top Header Design */}
         <div className="bg-green-700 p-8 text-center">
-          <h1 className="text-2xl font-black text-white uppercase tracking-widest">Maporong Portal</h1>
+          <Image
+            src="/maporong-logo.png"
+            alt="Barangay Maporong"
+            width={120}
+            height={75}
+            priority
+            className="mx-auto h-12 w-auto rounded-md bg-white p-1 object-contain"
+          />
           <p className="text-orange-300 text-sm font-bold mt-2">
             {isSignUp ? 'Create Resident Account' : 'Resident Login'}
           </p>

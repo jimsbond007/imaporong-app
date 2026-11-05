@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { toPng } from 'html-to-image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -262,9 +263,19 @@ export default function AdminPage() {
         
         {/* HEADER */}
         <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-4xl font-black text-blue-900 uppercase tracking-tighter italic">Maporong Admin</h1>
-            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em]">Barangay Information System</p>
+          <div className="flex items-center gap-3">
+            <Image
+              src="/maporong-logo.png"
+              alt="Barangay Maporong"
+              width={120}
+              height={75}
+              priority
+              className="h-12 w-auto object-contain"
+            />
+            <div>
+              <h1 className="text-4xl font-black text-blue-900 uppercase tracking-tighter italic">Admin</h1>
+              <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em]">Barangay Information System</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-3">

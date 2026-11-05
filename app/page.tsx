@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Image from 'next/image';
 import { supabase } from '../lib/supabase';
 import { useRouter } from 'next/navigation';
 
@@ -78,8 +79,14 @@ export default function Home() {
       {/* NAVIGATION */}
       <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-green-800 rounded-full flex items-center justify-center text-white font-black italic shadow-lg">M</div>
-          <h1 className="text-xl font-black tracking-tighter uppercase italic text-green-900">iMaporong</h1>
+          <Image
+            src="/maporong-logo.png"
+            alt="Barangay Maporong"
+            width={120}
+            height={75}
+            priority
+            className="h-12 w-auto object-contain"
+          />
         </div>
         <div className="flex gap-6 items-center">
           <a href="#portal" className="bg-green-800 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 transition-all shadow-md">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
@@ -108,7 +109,14 @@ export default function Dashboard() {
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-12 font-sans">
       {/* Navigation */}
       <nav className="bg-green-800 p-5 text-white flex justify-between items-center shadow-lg mb-8 print:hidden border-b-4 border-yellow-500">
-        <h1 className="font-black tracking-tighter uppercase text-2xl italic">iMaporong</h1>
+        <Image
+          src="/maporong-logo.png"
+          alt="Barangay Maporong"
+          width={120}
+          height={75}
+          priority
+          className="h-12 w-auto rounded-md bg-white p-1 object-contain"
+        />
         
         <div className="flex items-center gap-3">
           {/* Switch to Admin Page (Shown if user is an admin) */}
