@@ -239,18 +239,17 @@ export default function Dashboard() {
             <div className="z-10">
               <h3 className="text-4xl font-black tracking-tighter italic uppercase leading-none">Services</h3>
               <p className="text-xs text-green-200 mt-2 max-w-md font-medium">Request official barangay clearances, indigency certificates, and residency documents online.</p>
-              {isAdminUser ? (
-                <p className="mt-6 text-xs font-semibold text-green-100">
-                  Request submission is available to resident accounts.
+              {isAdminUser && (
+                <p className="mt-2 text-xs font-semibold text-green-100">
+                  You can submit a request for your own account.
                 </p>
-              ) : (
-                <button
-                  onClick={() => router.push('/dashboard/request')}
-                  className="mt-6 bg-yellow-500 text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-orange-500 transition-all active:scale-95"
-                >
-                  Request Form →
-                </button>
               )}
+              <button
+                onClick={() => router.push('/dashboard/request')}
+                className="mt-6 bg-yellow-500 text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-orange-500 transition-all active:scale-95"
+              >
+                Request Form →
+              </button>
             </div>
           </div>
         </div>

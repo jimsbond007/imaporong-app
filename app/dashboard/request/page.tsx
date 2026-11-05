@@ -63,12 +63,7 @@ export default function RequestForm() {
         return;
       }
 
-      if (profile.role === 'admin') {
-        router.replace('/admin');
-        return;
-      }
-
-      if (profile.role !== 'resident') {
+      if (profile.role !== 'resident' && profile.role !== 'admin') {
         await supabase.auth.signOut();
         router.replace('/auth');
         return;
@@ -117,8 +112,8 @@ export default function RequestForm() {
         router.replace('/auth');
         return;
       }
-      if (profile.role !== 'resident') {
-        router.replace(profile.role === 'admin' ? '/admin' : '/auth');
+      if (profile.role !== 'resident' && profile.role !== 'admin') {
+        router.replace('/auth');
         return;
       }
 
