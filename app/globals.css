@@ -1,17 +1,40 @@
 @import "tailwindcss";
 
+@theme inline {
+  --font-sans: var(--font-lato), sans-serif;
+  --font-display: var(--font-nunito-sans), sans-serif;
+}
+
 /* This forces the background to be white and text to be dark regardless of system settings */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-body: var(--font-lato), sans-serif;
+  --font-display: var(--font-nunito-sans), sans-serif;
 }
 
 body {
   background-color: white !important;
   color: #171717;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body);
   margin: 0;
   padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-body);
 }
 
 /* Ensure Tailwind's base styles are loaded */

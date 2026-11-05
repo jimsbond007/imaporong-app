@@ -117,7 +117,7 @@ export default function Home() {
           </svg>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl border border-white/50 text-center scale-110">
-              <p className="text-5xl font-black text-green-900 leading-none mb-2 italic tracking-tighter">2026</p>
+              <p className="text-5xl font-black font-display text-green-900 leading-none mb-2 italic tracking-tighter">2026</p>
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Digital Harvest</p>
             </div>
           </div>

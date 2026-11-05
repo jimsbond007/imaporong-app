@@ -281,19 +281,19 @@ export default function AdminPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Residents</p>
-            <p className="text-2xl font-black">{stats.totalRegistered}</p>
+            <p className="text-2xl font-black font-display">{stats.totalRegistered}</p>
           </div>
           <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-orange-500 border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Pending</p>
-            <p className="text-2xl font-black text-orange-600">{stats.pendingResidents}</p>
+            <p className="text-2xl font-black font-display text-orange-600">{stats.pendingResidents}</p>
           </div>
           <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-blue-600 border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Active Requests</p>
-            <p className="text-2xl font-black text-blue-600">{stats.activeRequests}</p>
+            <p className="text-2xl font-black font-display text-blue-600">{stats.activeRequests}</p>
           </div>
           <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-green-600 border-slate-100">
             <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Completed (Active)</p>
-            <p className="text-2xl font-black text-green-600">{stats.processedToday}</p>
+            <p className="text-2xl font-black font-display text-green-600">{stats.processedToday}</p>
           </div>
         </div>
 
@@ -465,7 +465,7 @@ export default function AdminPage() {
                   </div>
                   <div className="text-right">
                     <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Age</label>
-                    <p className="text-2xl font-black text-blue-600">
+                    <p className="text-2xl font-black font-display text-blue-600">
                       {selectedRequest.age || '—'}<span className="text-[10px] ml-1 uppercase">Yrs</span>
                     </p>
                   </div>
