@@ -21,11 +21,18 @@ export interface RequestSlipData {
 }
 
 export function getRequestSlipNumber(request: RequestSlipData): string {
+  const savedNumber = request.slip_number?.trim();
+  if (savedNumber && /^RQS-[A-Z0-9]{1,4}$/i.test(savedNumber)) {
+    return savedNumber.toUpperCase();
+  }
+
   const requestId = request.id?.replace(/-/g, '').toUpperCase();
-  if (requestId && /^[0-9A-F]+$/.test(requestId)) return `RQS-${requestId}`;
+  if (requestId && /^[0-9A-F]+$/.test(requestId)) return `RQS-${requestId.slice(-4)}`;
 
   const date = request.created_at ? new Date(request.created_at) : null;
-  const fallbackCode = date && !Number.isNaN(date.getTime()) ? date.getTime().toString(16).toUpperCase() : '0';
+  const fallbackCode = date && !Number.isNaN(date.getTime())
+    ? date.getTime().toString(36).slice(-4).toUpperCase()
+    : '0000';
 
   return `RQS-${fallbackCode}`;
 }

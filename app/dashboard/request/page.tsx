@@ -115,11 +115,13 @@ export default function RequestForm() {
         .select('id, slip_number, created_at');
 
       if (error) {
-        const missingSetup = error.message.includes('does not exist') || error.message.includes('Could not find');
+        console.error('Failed to submit service request:', error);
+        const missingSetup = ['42703', '42883', 'PGRST202', 'PGRST204', 'PGRST205'].includes(error.code)
+          || /does not exist|could not find/i.test(error.message);
         setFeedback({
           type: 'error',
           message: missingSetup
-            ? 'The request slip is not fully set up yet. Please contact the barangay administrator.'
+            ? 'The request database is missing required fields or slip-number setup. Ask the administrator to apply all SQL files in supabase/migrations in order, then reload this page.'
             : error.message,
         });
         return;
@@ -188,6 +190,15 @@ export default function RequestForm() {
                 Please keep this number. The barangay administrator can view, print, and download your request slip.
               </p>
             </div>
+            <button
+              onClick={() => {
+                setSubmittedSlip(null);
+                setFeedback(null);
+              }}
+              className="w-full bg-white border-2 border-green-700 text-green-800 hover:bg-green-50 font-black py-4 rounded-xl transition-all uppercase text-xs tracking-widest"
+            >
+              Submit Another Request
+            </button>
             <button
               onClick={() => router.push('/dashboard')}
               className="w-full bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest"
