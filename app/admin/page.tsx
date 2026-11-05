@@ -22,6 +22,7 @@ interface ServiceRequest {
   service_type: string;
   purpose: string;
   status: string;
+  rejection_reason?: string | null;
   age: number;
   address?: string;
   sex?: string;
@@ -50,6 +51,9 @@ export default function AdminPage() {
   const [archivedRequests, setArchivedRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionError, setRejectionError] = useState('');
+  const [savingRejection, setSavingRejection] = useState(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -152,6 +156,42 @@ export default function AdminPage() {
       fetchData();
       setSelectedRequest(null);
     }
+  };
+
+  const rejectRequest = async () => {
+    if (!selectedRequest) return;
+
+    const reason = rejectionReason.trim();
+    if (!reason) {
+      setRejectionError('Enter a reason so the resident knows what to correct.');
+      return;
+    }
+
+    setSavingRejection(true);
+    setRejectionError('');
+
+    const { error } = await supabase
+      .from('service_requests')
+      .update({ status: 'rejected', rejection_reason: reason })
+      .eq('id', selectedRequest.id);
+
+    setSavingRejection(false);
+
+    if (error) {
+      console.error('Failed to reject service request:', error);
+      setRejectionError(`Could not reject this request: ${error.message}`);
+      return;
+    }
+
+    setSelectedRequest(null);
+    setRejectionReason('');
+    await fetchData();
+  };
+
+  const openRequestDetails = (request: ServiceRequest) => {
+    setRejectionReason(request.rejection_reason || '');
+    setRejectionError('');
+    setSelectedRequest(request);
   };
 
   // Mark Request as Received: moves it out of active tables and into calendar storage
@@ -369,7 +409,7 @@ export default function AdminPage() {
                         <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-blue-100">{r.service_type}</span>
                       </td>
                       <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : r.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'}`}>
                           {r.status}
                         </span>
                       </td>
@@ -383,7 +423,7 @@ export default function AdminPage() {
                           </button>
                         )}
                         <button onClick={() => openSlip(r)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">Slip</button>
-                        <button onClick={() => setSelectedRequest(r)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">Details</button>
+                        <button onClick={() => openRequestDetails(r)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">Details</button>
                         <button onClick={() => deleteRequest(r.id)} className="text-slate-300 hover:text-red-500 p-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                         </button>
@@ -524,16 +564,54 @@ export default function AdminPage() {
                     &quot;{selectedRequest.purpose || "No details provided"}&quot;
                   </p>
                 </div>
+
+                {selectedRequest.status === 'rejected' && selectedRequest.rejection_reason && (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-rose-600">
+                      Rejection feedback sent to resident
+                    </label>
+                    <p className="break-words text-sm font-medium leading-relaxed text-rose-900">
+                      {selectedRequest.rejection_reason}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-3">
                 {selectedRequest.status === 'pending' && (
-                  <button 
-                    onClick={() => updateRequestStatus(selectedRequest.id, 'ready')}
-                    className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl active:scale-95 transition-all"
-                  >
-                    Approve & Mark Ready
-                  </button>
+                  <>
+                    <button
+                      onClick={() => updateRequestStatus(selectedRequest.id, 'ready')}
+                      className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl active:scale-95 transition-all"
+                    >
+                      Approve & Mark Ready
+                    </button>
+                    <label htmlFor="rejection-reason" className="block text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      Reason for rejection (required)
+                    </label>
+                    <textarea
+                      id="rejection-reason"
+                      value={rejectionReason}
+                      onChange={(event) => {
+                        setRejectionReason(event.target.value);
+                        setRejectionError('');
+                      }}
+                      maxLength={1000}
+                      rows={3}
+                      placeholder="Explain what needs to be corrected or provided."
+                      className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none focus:border-rose-400"
+                    />
+                    {rejectionError && (
+                      <p role="alert" className="text-xs font-bold text-rose-700">{rejectionError}</p>
+                    )}
+                    <button
+                      onClick={rejectRequest}
+                      disabled={savingRejection}
+                      className="w-full rounded-[24px] bg-rose-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl transition-all hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {savingRejection ? 'Saving Rejection...' : 'Reject Request'}
+                    </button>
+                  </>
                 )}
                 {selectedRequest.status === 'ready' && (
                   <button 

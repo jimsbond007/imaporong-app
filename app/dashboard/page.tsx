@@ -20,6 +20,7 @@ interface ServiceRequest {
   id: string;
   service_type: string;
   status: string;
+  rejection_reason?: string | null;
   slip_number?: string;
   created_at: string;
 }
@@ -209,8 +210,18 @@ export default function Dashboard() {
                       <td className="p-6 font-mono text-xs font-black text-green-800">{getRequestSlipNumber(r)}</td>
                       <td className="p-6">
                         <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusBadge(r.status)}`}>
-                          {r.status}
+                          {r.status === 'rejected' ? 'Rejected' : r.status}
                         </span>
+                        {r.status === 'rejected' && r.rejection_reason && (
+                          <div className="mt-3 max-w-sm rounded-xl border border-rose-200 bg-rose-50 p-3">
+                            <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-rose-700">
+                              Admin feedback
+                            </p>
+                            <p className="whitespace-pre-wrap break-words text-xs font-medium leading-relaxed text-rose-900">
+                              {r.rejection_reason}
+                            </p>
+                          </div>
+                        )}
                       </td>
                       <td className="p-6 text-slate-400 text-sm">{new Date(r.created_at).toLocaleDateString()}</td>
                     </tr>
