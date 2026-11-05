@@ -8,6 +8,7 @@ export default function AuthPage() {
  const [address, setAddress] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
    const [age, setAge] = useState('');
    const [gender, setGender] = useState('');
@@ -159,11 +160,37 @@ export default function AuthPage() {
 
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase">Password</label>
-            <input 
-              type="password" required
-              className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none text-black"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative mt-1">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                required
+                autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                className="w-full rounded-xl border-2 border-slate-100 p-3 pr-12 text-black outline-none focus:border-green-600"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 transition hover:text-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-green-600"
+              >
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+                  {showPassword ? (
+                    <>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 8.5 4.5 9.5 6.2a1.5 1.5 0 010 1.6 15.8 15.8 0 01-3.1 3.5M6.2 6.2a16.5 16.5 0 00-3.7 5 1.5 1.5 0 000 1.6C3.5 14.5 6.8 19 12 19c1 0 2-.2 2.9-.5" />
+                    </>
+                  ) : (
+                    <>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.5 12s3.2-7 9.5-7 9.5 7 9.5 7-3.2 7-9.5 7-9.5-7-9.5-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
 
           <button 

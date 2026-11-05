@@ -90,7 +90,8 @@ export default function AdminPage() {
   const [residents, setResidents] = useState<Resident[]>([]);
   const [residentSearch, setResidentSearch] = useState('');
   const [showResidentForm, setShowResidentForm] = useState(false);
-  const [editingResidentId, setEditingResidentId] = useState<string | null>(null);
+  const [editingResident, setEditingResident] = useState<Resident | null>(null);
+  const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null);
   const [residentForm, setResidentForm] = useState({ full_name: '', address: '', age: '', gender: '' });
   const [residentFeedback, setResidentFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [residentLoading, setResidentLoading] = useState(false);
@@ -244,40 +245,15 @@ export default function AdminPage() {
     setResidentFeedback({ type: 'success', message: `${resident.full_name} is verified as a bona fide resident.` });
   };
 
-  const deleteResident = async (resident: Resident) => {
-    if (!window.confirm(`Permanently remove ${resident.full_name} from the resident registry?`)) return;
-
-    if (resident.profile_id) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('id', resident.profile_id);
-      if (profileError) {
-        console.error('Failed to remove resident profile:', profileError);
-        setResidentFeedback({ type: 'error', message: `Could not remove resident: ${profileError.message}` });
-        return;
-      }
-    }
-
-    const { error } = await supabase.from('residents').delete().eq('id', resident.id);
-    if (error) {
-      console.error('Failed to remove resident record:', error);
-      setResidentFeedback({ type: 'error', message: `Could not remove resident: ${error.message}` });
-      return;
-    }
-
-    await fetchData();
-  };
-
   const openNewResidentForm = () => {
-    setEditingResidentId(null);
+    setEditingResident(null);
     setResidentForm({ full_name: '', address: '', age: '', gender: '' });
     setResidentFeedback(null);
     setShowResidentForm(true);
   };
 
   const openEditResidentForm = (resident: Resident) => {
-    setEditingResidentId(resident.id);
+    setEditingResident(resident);
     setResidentForm({
       full_name: resident.full_name,
       address: resident.address,
@@ -286,6 +262,27 @@ export default function AdminPage() {
     });
     setResidentFeedback(null);
     setShowResidentForm(true);
+  };
+
+  const deleteResident = async () => {
+    if (!residentToDelete) return;
+
+    setResidentLoading(true);
+    const { error } = await supabase
+      .from('residents')
+      .delete()
+      .eq('id', residentToDelete.id);
+    setResidentLoading(false);
+
+    if (error) {
+      console.error('Failed to remove resident registry record:', error);
+      setResidentFeedback({ type: 'error', message: `Could not remove resident record: ${error.message}` });
+      return;
+    }
+
+    setResidentToDelete(null);
+    await fetchData();
+    setResidentFeedback({ type: 'success', message: `${residentToDelete.full_name} was removed from the resident registry.` });
   };
 
   const saveResident = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -305,20 +302,11 @@ export default function AdminPage() {
       gender: residentForm.gender || null,
     };
 
-    let error;
-    if (editingResidentId) {
-      const resident = residents.find((record) => record.id === editingResidentId);
-      if (resident?.profile_id) {
-        const result = await supabase.from('profiles').update(values).eq('id', resident.profile_id);
-        error = result.error;
-      } else {
-        const result = await supabase.from('residents').update(values).eq('id', editingResidentId);
-        error = result.error;
-      }
-    } else {
-      const result = await supabase.from('residents').insert(values);
-      error = result.error;
-    }
+    const { error } = editingResident?.profile_id
+      ? await supabase.from('profiles').update(values).eq('id', editingResident.profile_id)
+      : editingResident
+        ? await supabase.from('residents').update(values).eq('id', editingResident.id)
+        : await supabase.from('residents').insert(values);
     setResidentLoading(false);
 
     if (error) {
@@ -328,8 +316,8 @@ export default function AdminPage() {
     }
 
     setShowResidentForm(false);
-    const successMessage = editingResidentId ? 'Resident record updated.' : 'Resident record added.';
-    setEditingResidentId(null);
+    const successMessage = editingResident ? 'Resident record updated.' : 'Resident record added.';
+    setEditingResident(null);
     await fetchData();
     setResidentFeedback({ type: 'success', message: successMessage });
   };
@@ -721,63 +709,6 @@ export default function AdminPage() {
               </div>
               <p className="mt-2 text-xs text-slate-500">Roster import expects CSV columns: Name, Address, Age, Gender. Excel spreadsheets can be saved as CSV.</p>
 
-              {showResidentForm && (
-                <form onSubmit={saveResident} className="mt-5 grid grid-cols-1 gap-3 rounded-2xl border border-green-100 bg-green-50/50 p-4 md:grid-cols-2">
-                  <h4 className="md:col-span-2 text-sm font-black text-green-900">
-                    {editingResidentId ? 'Edit resident record' : 'Add resident without an account'}
-                  </h4>
-                  <label className="text-xs font-bold text-slate-600">
-                    Full name
-                    <input
-                      required
-                      value={residentForm.full_name}
-                      onChange={(event) => setResidentForm({ ...residentForm, full_name: event.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs font-bold text-slate-600">
-                    Address
-                    <input
-                      required
-                      value={residentForm.address}
-                      onChange={(event) => setResidentForm({ ...residentForm, address: event.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs font-bold text-slate-600">
-                    Age
-                    <input
-                      type="number"
-                      min="0"
-                      max="120"
-                      value={residentForm.age}
-                      onChange={(event) => setResidentForm({ ...residentForm, age: event.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                    />
-                  </label>
-                  <label className="text-xs font-bold text-slate-600">
-                    Gender
-                    <select
-                      value={residentForm.gender}
-                      onChange={(event) => setResidentForm({ ...residentForm, gender: event.target.value })}
-                      className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                    >
-                      <option value="">Not provided</option>
-                      <option value="Female">Female</option>
-                      <option value="Male">Male</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </label>
-                  <div className="flex gap-2 md:col-span-2 md:justify-end">
-                    <button type="button" onClick={() => setShowResidentForm(false)} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black uppercase text-slate-600">Cancel</button>
-                    <button type="submit" disabled={residentLoading} className="rounded-xl bg-green-700 px-4 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50">
-                      {residentLoading ? 'Saving...' : 'Save Resident'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
               <label className="mt-5 block">
                 <span className="sr-only">Search residents</span>
                 <input
@@ -826,13 +757,28 @@ export default function AdminPage() {
                               {resident.is_verified ? 'Verified' : 'Pending'}
                             </span>
                           </td>
-                          <td className="p-4">
+                          <td className="p-4 text-right">
                             <div className="flex justify-end gap-2">
-                              <button type="button" onClick={() => openEditResidentForm(resident)} className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50">Edit</button>
+                              <button
+                                type="button"
+                                onClick={() => openEditResidentForm(resident)}
+                                className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50"
+                              >
+                                Edit
+                              </button>
                               {!resident.is_verified && (
                                 <button type="button" onClick={() => approveResident(resident)} className="rounded-lg bg-green-700 px-3 py-2 text-[10px] font-black uppercase text-white hover:bg-green-800">Verify</button>
                               )}
-                              <button type="button" onClick={() => deleteResident(resident)} className="rounded-lg px-2 py-2 text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50">Delete</button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setResidentFeedback(null);
+                                  setResidentToDelete(resident);
+                                }}
+                                className="rounded-lg border border-rose-200 px-3 py-2 text-[10px] font-black uppercase text-rose-700 hover:bg-rose-50"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -1277,6 +1223,160 @@ export default function AdminPage() {
         {slipRequest && (
           <div className="print-slip-area">
             <RequestSlip request={slipRequest} />
+          </div>
+        )}
+
+        {showResidentForm && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
+            onClick={(event) => {
+              if (event.target === event.currentTarget && !residentLoading) setShowResidentForm(false);
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="resident-form-title"
+              className="my-auto w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl"
+            >
+              <div className="flex items-center justify-between bg-green-800 px-6 py-5 text-white">
+                <div>
+                  <h2 id="resident-form-title" className="text-xl font-black">
+                    {editingResident ? 'Edit Resident' : 'Add Resident'}
+                  </h2>
+                  <p className="mt-1 text-xs font-semibold text-green-100">
+                    {editingResident?.profile_id
+                      ? 'Changes will also update the linked resident account.'
+                      : 'Update the resident registry details.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close resident form"
+                  disabled={residentLoading}
+                  onClick={() => setShowResidentForm(false)}
+                  className="rounded-full px-3 py-1 text-2xl leading-none text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={saveResident} className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
+                <label className="text-xs font-bold text-slate-600 sm:col-span-2">
+                  Full name
+                  <input
+                    required
+                    value={residentForm.full_name}
+                    onChange={(event) => setResidentForm({ ...residentForm, full_name: event.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-bold text-slate-600 sm:col-span-2">
+                  Address
+                  <input
+                    required
+                    value={residentForm.address}
+                    onChange={(event) => setResidentForm({ ...residentForm, address: event.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-bold text-slate-600">
+                  Age
+                  <input
+                    type="number"
+                    min="0"
+                    max="120"
+                    value={residentForm.age}
+                    onChange={(event) => setResidentForm({ ...residentForm, age: event.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                  />
+                </label>
+                <label className="text-xs font-bold text-slate-600">
+                  Gender
+                  <select
+                    value={residentForm.gender}
+                    onChange={(event) => setResidentForm({ ...residentForm, gender: event.target.value })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
+                  >
+                    <option value="">Not provided</option>
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Other">Other</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
+                </label>
+                {residentFeedback?.type === 'error' && (
+                  <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800 sm:col-span-2">
+                    {residentFeedback.message}
+                  </p>
+                )}
+                <div className="flex justify-end gap-2 sm:col-span-2">
+                  <button
+                    type="button"
+                    disabled={residentLoading}
+                    onClick={() => setShowResidentForm(false)}
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black uppercase text-slate-600 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={residentLoading}
+                    className="rounded-xl bg-green-700 px-5 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50"
+                  >
+                    {residentLoading ? 'Saving...' : editingResident ? 'Save Changes' : 'Add Resident'}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
+
+        {residentToDelete && (
+          <div
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+            onClick={(event) => {
+              if (event.target === event.currentTarget && !residentLoading) setResidentToDelete(null);
+            }}
+          >
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-resident-title"
+              className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+            >
+              <div className="bg-rose-700 px-6 py-5 text-white">
+                <h2 id="delete-resident-title" className="text-xl font-black">Delete Resident Record?</h2>
+              </div>
+              <div className="space-y-4 p-6">
+                <p className="text-sm leading-relaxed text-slate-600">
+                  Remove <strong className="text-slate-900">{residentToDelete.full_name}</strong> from the resident registry? This deletes the registry record only; it does not delete their portal login account.
+                </p>
+                {residentFeedback?.type === 'error' && (
+                  <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800">
+                    {residentFeedback.message}
+                  </p>
+                )}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={residentLoading}
+                    onClick={() => setResidentToDelete(null)}
+                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black uppercase text-slate-600 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={residentLoading}
+                    onClick={deleteResident}
+                    className="rounded-xl bg-rose-700 px-5 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50"
+                  >
+                    {residentLoading ? 'Deleting...' : 'Delete Record'}
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
         )}
 

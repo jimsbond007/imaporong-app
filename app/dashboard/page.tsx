@@ -22,6 +22,7 @@ interface ServiceRequest {
   rejection_reason?: string | null;
   slip_number?: string;
   created_at: string;
+  resident_hidden_at?: string | null;
 }
 
 export default function Dashboard() {
@@ -29,6 +30,7 @@ export default function Dashboard() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingImage, setSavingImage] = useState(false);
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
   const [showIdModal, setShowIdModal] = useState(false);
   const idCardRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
@@ -55,12 +57,7 @@ export default function Dashboard() {
           return;
         }
 
-        if (userProfile.role === 'admin') {
-          router.replace('/admin');
-          return;
-        }
-
-        if (userProfile.role !== 'resident') {
+        if (userProfile.role !== 'admin' && userProfile.role !== 'resident') {
           console.error('Signed-in user has an unsupported role:', userProfile.role);
           await supabase.auth.signOut();
           router.replace('/auth');
@@ -72,6 +69,7 @@ export default function Dashboard() {
           .from('service_requests')
           .select('*')
           .eq('resident_id', user.id)
+          .is('resident_hidden_at', null)
           .order('created_at', { ascending: false });
         if (requestsError) {
           console.error('Could not load resident requests:', requestsError);
@@ -95,6 +93,27 @@ export default function Dashboard() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleHideCompletedRequest = async (request: ServiceRequest) => {
+    if (!window.confirm('Remove this completed request from your history? It will remain visible in the administrator calendar.')) {
+      return;
+    }
+
+    setDeletingRequestId(request.id);
+    const { error } = await supabase.rpc('hide_completed_request_from_resident', {
+      p_request_id: request.id,
+    });
+
+    if (error) {
+      console.error('Could not remove completed request from resident history:', error);
+      alert(`Could not remove this request from your history: ${error.message}`);
+      setDeletingRequestId(null);
+      return;
+    }
+
+    setRequests((current) => current.filter((item) => item.id !== request.id));
+    setDeletingRequestId(null);
   };
 
   const handleSaveImage = async () => {
@@ -147,7 +166,12 @@ export default function Dashboard() {
         />
         
         <div className="flex items-center gap-3">
-          {/* Switch to Admin Page (Shown if user is an admin) */}
+          {isAdminUser && (
+            <span className="rounded-lg bg-white/15 px-3 py-2 text-[10px] font-black uppercase tracking-wide">
+              Admin preview
+            </span>
+          )}
+
           {isAdminUser && (
             <button
               onClick={() => router.push('/admin')}
@@ -199,12 +223,18 @@ export default function Dashboard() {
             <div className="z-10">
               <h3 className="text-4xl font-black tracking-tighter italic uppercase leading-none">Services</h3>
               <p className="text-xs text-green-200 mt-2 max-w-md font-medium">Request official barangay clearances, indigency certificates, and residency documents online.</p>
-              <button 
-                onClick={() => router.push('/dashboard/request')} 
-                className="mt-6 bg-yellow-500 text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-orange-500 transition-all active:scale-95"
-              >
-                Request Form →
-              </button>
+              {isAdminUser ? (
+                <p className="mt-6 text-xs font-semibold text-green-100">
+                  Request submission is available to resident accounts.
+                </p>
+              ) : (
+                <button
+                  onClick={() => router.push('/dashboard/request')}
+                  className="mt-6 bg-yellow-500 text-black px-8 py-3 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-orange-500 transition-all active:scale-95"
+                >
+                  Request Form →
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -228,6 +258,7 @@ export default function Dashboard() {
                     <th className="p-6">Slip No.</th>
                     <th className="p-6">Status</th>
                     <th className="p-6">Date</th>
+                    <th className="p-6 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -242,10 +273,22 @@ export default function Dashboard() {
                           </span>
                         </td>
                         <td className="p-6 text-slate-400 text-sm">{new Date(r.created_at).toLocaleDateString()}</td>
+                        <td className="p-6 text-right">
+                          {r.status === 'received' && (
+                            <button
+                              type="button"
+                              onClick={() => handleHideCompletedRequest(r)}
+                              disabled={deletingRequestId === r.id}
+                              className="rounded-lg border border-rose-200 px-3 py-2 text-[10px] font-black uppercase text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
+                            >
+                              {deletingRequestId === r.id ? 'Removing...' : 'Remove'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                       {r.status === 'rejected' && r.rejection_reason && (
                         <tr className="border-b last:border-0">
-                          <td colSpan={4} className="px-6 pb-5">
+                          <td colSpan={5} className="px-6 pb-5">
                             <div className="rounded-xl border border-rose-200 bg-rose-50 p-4">
                               <p className="mb-1 text-[9px] font-black uppercase tracking-widest text-rose-700">
                                 Admin feedback — why this request was rejected
