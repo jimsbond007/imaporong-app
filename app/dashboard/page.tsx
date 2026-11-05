@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
 import { toPng } from 'html-to-image';
+import { getRequestSlipNumber } from '../../components/RequestSlip';
 
 interface Profile {
   full_name: string;
@@ -18,6 +19,7 @@ interface ServiceRequest {
   id: string;
   service_type: string;
   status: string;
+  slip_number?: string;
   created_at: string;
 }
 
@@ -187,6 +189,7 @@ export default function Dashboard() {
                 <thead>
                   <tr className="border-b text-[10px] font-black text-slate-400 uppercase">
                     <th className="p-6">Document</th>
+                    <th className="p-6">Slip No.</th>
                     <th className="p-6">Status</th>
                     <th className="p-6">Date</th>
                   </tr>
@@ -195,6 +198,7 @@ export default function Dashboard() {
                   {requests.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
                       <td className="p-6 font-black text-slate-800 uppercase">{r.service_type}</td>
+                      <td className="p-6 font-mono text-xs font-black text-green-800">{getRequestSlipNumber(r)}</td>
                       <td className="p-6">
                         <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase border ${getStatusBadge(r.status)}`}>
                           {r.status}

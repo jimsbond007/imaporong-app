@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
 import { supabase } from '../../lib/supabase';
 import { useRouter } from 'next/navigation';
+import RequestSlip, { getRequestSlipNumber } from '../../components/RequestSlip';
 
 interface Resident {
   id: string;
@@ -23,6 +25,14 @@ interface ServiceRequest {
   address?: string;
   sex?: string;
   civil_status?: string;
+  birthday?: string;
+  birth_place?: string;
+  height?: string;
+  weight?: string;
+  business?: string;
+  capital?: string;
+  cp_no?: string;
+  slip_number?: string;
   request_for?: string;
   created_at: string;
   received_at?: string;
@@ -31,6 +41,8 @@ interface ServiceRequest {
 export default function AdminPage() {
   const router = useRouter();
   const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+  const [slipRequest, setSlipRequest] = useState<ServiceRequest | null>(null);
+  const slipRef = useRef<HTMLDivElement>(null);
   const [activeTab, setActiveTab] = useState<'residents' | 'requests' | 'calendar'>('residents');
   const [residents, setResidents] = useState<Resident[]>([]);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -193,6 +205,26 @@ export default function AdminPage() {
     setSelectedDateRequests(dayRequests);
   };
 
+  const openSlip = (request: ServiceRequest) => {
+    setSelectedRequest(null);
+    setSlipRequest(request);
+  };
+
+  const downloadSlip = async () => {
+    if (!slipRef.current || !slipRequest) return;
+
+    try {
+      const dataUrl = await toPng(slipRef.current, { cacheBust: true, pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `Request-Slip-${getRequestSlipNumber(slipRequest)}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (err) {
+      console.error('Failed to download request slip:', err);
+      alert('Could not generate the slip image. Please try printing instead.');
+    }
+  };
+
   if (accessDenied) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6 font-sans">
@@ -315,7 +347,12 @@ export default function AdminPage() {
                 <tbody>
                   {requests.map((r) => (
                     <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                      <td className="p-6 font-bold text-slate-800">{r.full_name}</td>
+                      <td className="p-6 font-bold text-slate-800">
+                        <div>{r.full_name}</div>
+                        <div className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          {getRequestSlipNumber(r)}
+                        </div>
+                      </td>
                       <td className="p-6">
                         <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-blue-100">{r.service_type}</span>
                       </td>
@@ -333,6 +370,7 @@ export default function AdminPage() {
                             Mark Received
                           </button>
                         )}
+                        <button onClick={() => openSlip(r)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">Slip</button>
                         <button onClick={() => setSelectedRequest(r)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">Details</button>
                         <button onClick={() => deleteRequest(r.id)} className="text-slate-300 hover:text-red-500 p-1">
                           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
@@ -409,7 +447,12 @@ export default function AdminPage() {
             <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
               
               <div className="bg-blue-900 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
-                <h3 className="font-black uppercase tracking-tighter text-2xl">Processing Details</h3>
+                <div>
+                  <h3 className="font-black uppercase tracking-tighter text-2xl">Processing Details</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mt-1">
+                    {getRequestSlipNumber(selectedRequest)}
+                  </p>
+                </div>
                 <button onClick={() => setSelectedRequest(null)} className="text-white/50 hover:text-white text-2xl">×</button>
               </div>
               
@@ -489,6 +532,12 @@ export default function AdminPage() {
                   </button>
                 )}
                 <button 
+                  onClick={() => openSlip(selectedRequest)}
+                  className="w-full bg-indigo-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-indigo-700 shadow-xl active:scale-95 transition-all"
+                >
+                  View / Print Request Slip
+                </button>
+                <button 
                   onClick={() => setSelectedRequest(null)} 
                   className="w-full bg-white border border-slate-200 text-slate-400 py-3 md:py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
                 >
@@ -516,14 +565,20 @@ export default function AdminPage() {
                   <p className="text-center text-slate-400 font-bold py-8 text-xs">No document requests recorded on this date.</p>
                 ) : (
                   selectedDateRequests.map((req) => (
-                    <div key={req.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center">
-                      <div>
-                        <p className="font-black text-slate-800 text-sm">{req.full_name}</p>
+                    <div key={req.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <p className="font-black text-slate-800 text-sm truncate">{req.full_name}</p>
                         <p className="text-[10px] text-slate-500 uppercase font-bold">{req.service_type}</p>
+                        <p className="text-[9px] text-emerald-700 font-black uppercase tracking-wider mt-1">{getRequestSlipNumber(req)}</p>
                       </div>
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${req.status === 'received' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
-                        {req.status}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${req.status === 'received' ? 'bg-slate-200 text-slate-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {req.status}
+                        </span>
+                        <button onClick={() => openSlip(req)} className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md transition-all active:scale-95">
+                          View / Print
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -538,6 +593,59 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* MODAL: REQUEST SLIP */}
+        {slipRequest && (
+          <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-start justify-center z-[60] p-4 overflow-y-auto">
+            <div className="w-full max-w-2xl my-6 bg-white rounded-3xl shadow-2xl overflow-hidden">
+              <div className="bg-blue-900 p-5 md:p-6 text-white flex justify-between items-center">
+                <div>
+                  <h3 className="font-black uppercase tracking-tighter text-xl">Request Slip</h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mt-1">
+                    {getRequestSlipNumber(slipRequest)}
+                  </p>
+                </div>
+                <button onClick={() => setSlipRequest(null)} className="text-white/60 hover:text-white text-2xl">×</button>
+              </div>
+
+              <div className="p-4 md:p-6 bg-slate-100">
+                <div className="shadow-xl">
+                  <div ref={slipRef} className="bg-white">
+                    <RequestSlip request={slipRequest} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 md:p-6 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all active:scale-95"
+                >
+                  Print Slip
+                </button>
+                <button
+                  onClick={downloadSlip}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all active:scale-95"
+                >
+                  Download PNG
+                </button>
+                <button
+                  onClick={() => setSlipRequest(null)}
+                  className="sm:flex-none sm:px-6 bg-white border border-slate-200 text-slate-500 py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Print-only copy. globals.css hides everything else while printing. */}
+        {slipRequest && (
+          <div className="print-slip-area">
+            <RequestSlip request={slipRequest} />
           </div>
         )}
 
