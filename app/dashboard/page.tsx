@@ -12,8 +12,7 @@ interface Profile {
   address: string;
   bid_number: string;
   is_verified: boolean;
-  role?: string;
-  is_admin?: boolean;
+  role: string;
 }
 
 interface ServiceRequest {
@@ -43,14 +42,42 @@ export default function Dashboard() {
           return;
         }
 
-        // Fetch profile and requests concurrently
-        const [profileRes, requestsRes] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', user.id).single(),
-          supabase.from('service_requests').select('*').eq('resident_id', user.id).order('created_at', { ascending: false })
-        ]);
+        const { data: userProfile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-        if (profileRes.data) setProfile(profileRes.data);
-        if (requestsRes.data) setRequests(requestsRes.data);
+        if (profileError || !userProfile) {
+          console.error('Could not verify the signed-in user role:', profileError);
+          await supabase.auth.signOut();
+          router.replace('/auth');
+          return;
+        }
+
+        if (userProfile.role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
+
+        if (userProfile.role !== 'resident') {
+          console.error('Signed-in user has an unsupported role:', userProfile.role);
+          await supabase.auth.signOut();
+          router.replace('/auth');
+          return;
+        }
+
+        setProfile(userProfile);
+        const { data: userRequests, error: requestsError } = await supabase
+          .from('service_requests')
+          .select('*')
+          .eq('resident_id', user.id)
+          .order('created_at', { ascending: false });
+        if (requestsError) {
+          console.error('Could not load resident requests:', requestsError);
+          return;
+        }
+        setRequests(userRequests || []);
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
       } finally {
@@ -96,9 +123,9 @@ export default function Dashboard() {
   };
 
   // Check if current user is an admin
-  const isAdminUser = profile?.role === 'admin' || profile?.is_admin === true;
+  const isAdminUser = profile?.role === 'admin';
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100 font-black text-green-800 text-2xl animate-pulse">
         LOADING DASHBOARD...

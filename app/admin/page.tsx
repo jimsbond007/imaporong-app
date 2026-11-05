@@ -192,13 +192,13 @@ export default function AdminPage() {
       // 2. Make sure the signed-in user actually has an admin role.
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('role')
         .eq('id', user.id)
         .single();
 
       if (cancelled) return;
 
-      const isAdmin = !error && profile && (profile.role === 'admin' || profile.is_admin === true);
+      const isAdmin = !error && profile?.role === 'admin';
 
       if (!isAdmin) {
         setAccessDenied(true);

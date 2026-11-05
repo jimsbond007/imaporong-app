@@ -51,9 +51,29 @@ export default function AuthPage() {
       }
     } else {
       // Log In
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) alert(error.message);
-      else router.push('/dashboard');
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        alert(error.message);
+      } else if (data.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Could not load signed-in user role:', profileError);
+          await supabase.auth.signOut();
+          alert('Your account role could not be verified. Please contact the barangay administrator.');
+        } else if (profile.role === 'admin') {
+          router.replace('/admin');
+        } else if (profile.role === 'resident') {
+          router.replace('/dashboard');
+        } else {
+          await supabase.auth.signOut();
+          alert('This account does not have an authorized portal role.');
+        }
+      }
     }
     setLoading(false);
   };

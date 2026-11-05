@@ -27,17 +27,23 @@ export default function Home() {
         alert(error.message);
       } else if (data?.user) {
         // Fetch the role from the 'profiles' table
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', data.user.id)
           .single();
 
-        // REDIRECT LOGIC
-        if (profile?.role === 'admin') {
+        if (profileError || !profile) {
+          console.error('Could not load signed-in user role:', profileError);
+          await supabase.auth.signOut();
+          alert('Your account role could not be verified. Please contact the barangay administrator.');
+        } else if (profile.role === 'admin') {
           router.push('/admin');
-        } else {
+        } else if (profile.role === 'resident') {
           router.push('/dashboard');
+        } else {
+          await supabase.auth.signOut();
+          alert('This account does not have an authorized portal role.');
         }
       }
     } else {

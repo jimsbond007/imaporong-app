@@ -7,6 +7,7 @@ import { getRequestSlipNumber } from '../../../components/RequestSlip';
 
 export default function RequestForm() {
   const router = useRouter();
+  const [profileLoading, setProfileLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [submittedSlip, setSubmittedSlip] = useState<string | null>(null);
@@ -49,20 +50,36 @@ export default function RequestForm() {
         return;
       }
 
-      // Only select columns that exist on the profiles table.
-      const { data: profile } = await supabase
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('full_name, address')
+        .select('full_name, address, role')
         .eq('id', user.id)
         .single();
 
-      if (profile) {
-        setFormData((prev) => ({
-          ...prev,
-          full_name: profile.full_name || '',
-          address: profile.address || '',
-        }));
+      if (error || !profile) {
+        console.error('Could not verify the signed-in user role:', error);
+        await supabase.auth.signOut();
+        router.replace('/auth');
+        return;
       }
+
+      if (profile.role === 'admin') {
+        router.replace('/admin');
+        return;
+      }
+
+      if (profile.role !== 'resident') {
+        await supabase.auth.signOut();
+        router.replace('/auth');
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        full_name: profile.full_name || '',
+        address: profile.address || '',
+      }));
+      setProfileLoading(false);
     };
 
     fetchProfile();
@@ -86,6 +103,22 @@ export default function RequestForm() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/auth');
+        return;
+      }
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      if (profileError || !profile) {
+        console.error('Could not verify request submitter role:', profileError);
+        await supabase.auth.signOut();
+        router.replace('/auth');
+        return;
+      }
+      if (profile.role !== 'resident') {
+        router.replace(profile.role === 'admin' ? '/admin' : '/auth');
         return;
       }
 
@@ -156,6 +189,10 @@ export default function RequestForm() {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return <div className="p-20 text-center font-black text-green-900">VERIFYING ACCOUNT...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 text-slate-900 font-sans">
