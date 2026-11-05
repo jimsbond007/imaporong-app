@@ -36,6 +36,7 @@ export default function AdminPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [archivedRequests, setArchivedRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -110,7 +111,7 @@ export default function AdminPage() {
       const isAdmin = !error && profile && (profile.role === 'admin' || profile.is_admin === true);
 
       if (!isAdmin) {
-        router.replace('/dashboard');
+        setAccessDenied(true);
         return;
       }
 
@@ -191,6 +192,34 @@ export default function AdminPage() {
     setSelectedDateLabel(dateObj.toLocaleDateString(undefined, { dateStyle: 'full' }));
     setSelectedDateRequests(dayRequests);
   };
+
+  if (accessDenied) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6 font-sans">
+        <div role="alert" className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-red-100">
+          <div className="bg-red-600 p-8 text-center">
+            <h1 className="text-2xl font-black text-white uppercase tracking-widest">Access Denied</h1>
+            <p className="text-red-100 text-sm font-bold mt-2">Administrator access only</p>
+          </div>
+
+          <div className="p-8 text-center space-y-6">
+            <p className="text-slate-600 font-bold leading-relaxed">
+              Your account does not have administrator permissions. You cannot view the admin portal.
+            </p>
+            <p className="text-slate-400 text-xs font-bold leading-relaxed">
+              If you believe this is a mistake, please contact the barangay administrator.
+            </p>
+            <button
+              onClick={() => router.replace('/dashboard')}
+              className="w-full bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest"
+            >
+              Back to Resident Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return <div className="p-20 text-center font-black text-blue-900 animate-pulse">LOADING ADMIN PORTAL...</div>;
 
