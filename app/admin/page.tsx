@@ -87,8 +87,43 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let cancelled = false;
+
+    const verifyAdminAccess = async () => {
+      // 1. Make sure the visitor is signed in.
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (!user) {
+        router.replace('/auth');
+        return;
+      }
+
+      // 2. Make sure the signed-in user actually has an admin role.
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (cancelled) return;
+
+      const isAdmin = !error && profile && (profile.role === 'admin' || profile.is_admin === true);
+
+      if (!isAdmin) {
+        router.replace('/dashboard');
+        return;
+      }
+
+      // 3. Only load admin data after authorization succeeds.
+      await fetchData();
+    };
+
+    verifyAdminAccess();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const approveResident = async (id: string) => {
     const randomNum = Math.floor(1000 + Math.random() * 9000);
