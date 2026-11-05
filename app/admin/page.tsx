@@ -310,11 +310,15 @@ export default function AdminPage() {
       gender: residentForm.gender || null,
     };
 
-    const { error } = editingResident?.profile_id
-      ? await supabase.from('profiles').update(values).eq('id', editingResident.profile_id)
-      : editingResident
-        ? await supabase.from('residents').update(values).eq('id', editingResident.id)
-        : await supabase.from('residents').insert(values);
+    const { error } = editingResident
+      ? await supabase.rpc('admin_update_resident_record', {
+          p_resident_id: editingResident.id,
+          p_full_name: values.full_name,
+          p_address: values.address,
+          p_age: values.age,
+          p_gender: values.gender,
+        })
+      : await supabase.from('residents').insert(values);
     setResidentLoading(false);
 
     if (error) {
