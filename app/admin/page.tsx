@@ -51,9 +51,6 @@ export default function AdminPage() {
   const [archivedRequests, setArchivedRequests] = useState<ServiceRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState(false);
-  const [rejectionReason, setRejectionReason] = useState('');
-  const [rejectionError, setRejectionError] = useState('');
-  const [savingRejection, setSavingRejection] = useState(false);
 
   // Calendar State
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -158,39 +155,32 @@ export default function AdminPage() {
     }
   };
 
-  const rejectRequest = async () => {
-    if (!selectedRequest) return;
+  const rejectRequest = async (request: ServiceRequest) => {
+    const enteredReason = window.prompt(`Enter the reason for rejecting ${request.full_name}'s request:`);
+    if (enteredReason === null) return;
 
-    const reason = rejectionReason.trim();
+    const reason = enteredReason.trim();
     if (!reason) {
-      setRejectionError('Enter a reason so the resident knows what to correct.');
+      window.alert('A rejection reason is required.');
       return;
     }
-
-    setSavingRejection(true);
-    setRejectionError('');
 
     const { error } = await supabase
       .from('service_requests')
       .update({ status: 'rejected', rejection_reason: reason })
-      .eq('id', selectedRequest.id);
-
-    setSavingRejection(false);
+      .eq('id', request.id);
 
     if (error) {
       console.error('Failed to reject service request:', error);
-      setRejectionError(`Could not reject this request: ${error.message}`);
+      window.alert(`Could not reject this request: ${error.message}`);
       return;
     }
 
-    setSelectedRequest(null);
-    setRejectionReason('');
+    if (selectedRequest?.id === request.id) setSelectedRequest(null);
     await fetchData();
   };
 
   const openRequestDetails = (request: ServiceRequest) => {
-    setRejectionReason(request.rejection_reason || '');
-    setRejectionError('');
     setSelectedRequest(request);
   };
 
@@ -213,13 +203,6 @@ export default function AdminPage() {
   const deleteResident = async (id: string, name: string) => {
     if (!confirm(`Permanently delete ${name}?`)) return;
     const { error } = await supabase.from('profiles').delete().eq('id', id);
-    if (error) alert("Error: " + error.message);
-    else fetchData();
-  };
-
-  const deleteRequest = async (id: string) => {
-    if (!confirm("Delete this request record permanently?")) return;
-    const { error } = await supabase.from('service_requests').delete().eq('id', id);
     if (error) alert("Error: " + error.message);
     else fetchData();
   };
@@ -424,9 +407,17 @@ export default function AdminPage() {
                         )}
                         <button onClick={() => openSlip(r)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">Slip</button>
                         <button onClick={() => openRequestDetails(r)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">Details</button>
-                        <button onClick={() => deleteRequest(r.id)} className="text-slate-300 hover:text-red-500 p-1">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                        </button>
+                        {r.status !== 'rejected' && (
+                          <button
+                            type="button"
+                            onClick={() => rejectRequest(r)}
+                            aria-label={`Reject request from ${r.full_name}`}
+                            title="Reject request"
+                            className="text-slate-300 hover:text-red-600 p-1"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -585,31 +576,6 @@ export default function AdminPage() {
                       className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl active:scale-95 transition-all"
                     >
                       Approve & Mark Ready
-                    </button>
-                    <label htmlFor="rejection-reason" className="block text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      Reason for rejection (required)
-                    </label>
-                    <textarea
-                      id="rejection-reason"
-                      value={rejectionReason}
-                      onChange={(event) => {
-                        setRejectionReason(event.target.value);
-                        setRejectionError('');
-                      }}
-                      maxLength={1000}
-                      rows={3}
-                      placeholder="Explain what needs to be corrected or provided."
-                      className="w-full resize-y rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none focus:border-rose-400"
-                    />
-                    {rejectionError && (
-                      <p role="alert" className="text-xs font-bold text-rose-700">{rejectionError}</p>
-                    )}
-                    <button
-                      onClick={rejectRequest}
-                      disabled={savingRejection}
-                      className="w-full rounded-[24px] bg-rose-600 py-4 text-xs font-black uppercase tracking-widest text-white shadow-xl transition-all hover:bg-rose-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {savingRejection ? 'Saving Rejection...' : 'Reject Request'}
                     </button>
                   </>
                 )}
