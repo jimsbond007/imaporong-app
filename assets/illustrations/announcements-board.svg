@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" fill="none" role="img" aria-labelledby="boardTitle boardDesc">
+  <title id="boardTitle">Residents reading the barangay noticeboard</title>
+  <desc id="boardDesc">A flat vector scene of two residents reading pinned announcements on a barangay noticeboard, with a plant and soft hills in the background.</desc>
+
+  <rect width="640" height="480" rx="32" fill="#F1F7F3"/>
+
+  <!-- sun -->
+  <circle cx="86" cy="84" r="58" fill="#F5C879" opacity="0.18"/>
+  <circle cx="86" cy="84" r="36" fill="#F5C879"/>
+
+  <!-- birds -->
+  <path d="M206 76c7-7 17-7 24 0" stroke="#75B99B" stroke-width="4" stroke-linecap="round"/>
+  <path d="M250 60c6-6 14-6 20 0" stroke="#75B99B" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- soft ground -->
+  <path d="M0 372c92-36 176-34 258 2s178 34 256 0 126-30 126-30v136H0V372Z" fill="#DCEFE8"/>
+  <path d="M0 418c88-26 168-24 246 4s174 26 250 2 144-22 144-22v78H0v-62Z" fill="#DCEFE8" opacity="0.7"/>
+
+  <!-- board posts -->
+  <rect x="150" y="318" width="14" height="96" rx="7" fill="#A97C55"/>
+  <rect x="366" y="318" width="14" height="96" rx="7" fill="#A97C55"/>
+
+  <!-- board -->
+  <rect x="104" y="128" width="326" height="204" rx="16" fill="#FFFFFF"/>
+  <rect x="104" y="128" width="326" height="42" rx="16" fill="#267653"/>
+  <rect x="104" y="152" width="326" height="18" fill="#267653"/>
+  <circle cx="126" cy="149" r="4" fill="#F5C879"/>
+  <circle cx="142" cy="149" r="4" fill="#DCEFE8"/>
+  <circle cx="158" cy="149" r="4" fill="#E6F3FA"/>
+
+  <!-- pinned notices -->
+  <g>
+    <rect x="126" y="188" width="84" height="104" rx="7" fill="#E6F3FA"/>
+    <rect x="136" y="200" width="64" height="7" rx="3.5" fill="#267653"/>
+    <rect x="136" y="216" width="52" height="5" rx="2.5" fill="#75B99B"/>
+    <rect x="136" y="228" width="58" height="5" rx="2.5" fill="#75B99B"/>
+    <rect x="136" y="240" width="46" height="5" rx="2.5" fill="#75B99B"/>
+    <circle cx="168" cy="192" r="5" fill="#267653"/>
+  </g>
+
+  <g transform="rotate(-2 270 236)">
+    <rect x="222" y="182" width="92" height="116" rx="7" fill="#FDF3DE"/>
+    <rect x="232" y="194" width="72" height="8" rx="4" fill="#8A6116"/>
+    <circle cx="244" cy="216" r="10" fill="#F5C879"/>
+    <rect x="260" y="209" width="42" height="5" rx="2.5" fill="#8A6116"/>
+    <rect x="260" y="220" width="34" height="5" rx="2.5" fill="#8A6116" opacity="0.6"/>
+    <rect x="232" y="238" width="70" height="5" rx="2.5" fill="#C9A45E"/>
+    <rect x="232" y="250" width="58" height="5" rx="2.5" fill="#C9A45E"/>
+    <rect x="232" y="262" width="64" height="5" rx="2.5" fill="#C9A45E"/>
+    <rect x="232" y="274" width="40" height="5" rx="2.5" fill="#C9A45E"/>
+    <circle cx="268" cy="186" r="5" fill="#8A6116"/>
+  </g>
+
+  <g transform="rotate(2 364 240)">
+    <rect x="326" y="192" width="86" height="102" rx="7" fill="#DCEFE8"/>
+    <rect x="336" y="204" width="66" height="7" rx="3.5" fill="#267653"/>
+    <rect x="336" y="220" width="54" height="5" rx="2.5" fill="#75B99B"/>
+    <rect x="336" y="232" width="60" height="5" rx="2.5" fill="#75B99B"/>
+    <rect x="336" y="244" width="44" height="5" rx="2.5" fill="#75B99B"/>
+    <rect x="336" y="262" width="52" height="18" rx="5" fill="#FFFFFF"/>
+    <circle cx="369" cy="196" r="5" fill="#267653"/>
+  </g>
+
+  <!-- ground shadow -->
+  <ellipse cx="452" cy="424" rx="86" ry="12" fill="#344A40" opacity="0.07"/>
+
+  <!-- resident pointing at the board -->
+  <rect x="440" y="300" width="52" height="104" rx="22" fill="#267653"/>
+  <rect x="428" y="314" width="14" height="62" rx="7" fill="#267653"/>
+  <rect x="490" y="314" width="14" height="62" rx="7" fill="#267653"/>
+  <circle cx="435" cy="380" r="8" fill="#B07A50"/>
+  <circle cx="497" cy="380" r="8" fill="#B07A50"/>
+  <circle cx="462" cy="278" r="27" fill="#344A40"/>
+  <circle cx="464" cy="284" r="23" fill="#B07A50"/>
+  <path d="M452 402h14v28a7 7 0 0 1-14 0v-28Z" fill="#344A40"/>
+  <path d="M470 402h14v28a7 7 0 0 1-14 0v-28Z" fill="#344A40"/>
+  <!-- outstretched arm toward the board -->
+  <path d="M432 322c-22 2-34-12-38-28" stroke="#267653" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="391" cy="292" r="9" fill="#B07A50"/>
+
+  <!-- resident holding a notice -->
+  <rect x="524" y="318" width="46" height="86" rx="20" fill="#E6F3FA"/>
+  <rect x="514" y="330" width="12" height="52" rx="6" fill="#E6F3FA"/>
+  <rect x="568" y="330" width="12" height="52" rx="6" fill="#E6F3FA"/>
+  <circle cx="520" cy="388" r="7" fill="#8B5E3C"/>
+  <circle cx="572" cy="388" r="7" fill="#8B5E3C"/>
+  <circle cx="547" cy="298" r="23" fill="#344A40"/>
+  <circle cx="549" cy="303" r="19" fill="#8B5E3C"/>
+  <path d="M535 404h12v26a6 6 0 0 1-12 0v-26Z" fill="#344A40"/>
+  <path d="M552 404h12v26a6 6 0 0 1-12 0v-26Z" fill="#344A40"/>
+  <g transform="rotate(-8 558 360)">
+    <rect x="546" y="340" width="30" height="38" rx="5" fill="#FFFFFF"/>
+    <rect x="551" y="347" width="20" height="4" rx="2" fill="#267653"/>
+    <rect x="551" y="355" width="20" height="3" rx="1.5" fill="#DDE8E1"/>
+    <rect x="551" y="362" width="14" height="3" rx="1.5" fill="#DDE8E1"/>
+  </g>
+
+  <!-- plant bottom left -->
+  <rect x="64" y="392" width="10" height="44" rx="5" fill="#A97C55"/>
+  <circle cx="56" cy="386" r="24" fill="#75B99B"/>
+  <circle cx="84" cy="398" r="18" fill="#75B99B"/>
+  <circle cx="40" cy="404" r="15" fill="#75B99B"/>
+  <rect x="30" y="430" width="64" height="14" rx="7" fill="#DDE8E1"/>
+
+  <!-- foreground grass -->
+  <circle cx="620" cy="452" r="22" fill="#75B99B"/>
+  <circle cx="594" cy="462" r="14" fill="#75B99B"/>
+</svg>

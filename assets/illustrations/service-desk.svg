@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" fill="none" role="img" aria-labelledby="deskTitle deskDesc">
+  <title id="deskTitle">Receiving a document at the counter</title>
+  <desc id="deskDesc">A flat vector scene of a barangay staff member handing a printed document to a resident across a service counter.</desc>
+  <rect width="640" height="480" rx="32" fill="#F1F7F3"/>
+
+  <!-- notice board -->
+  <rect x="398" y="74" width="176" height="128" rx="14" fill="#FFFFFF"/>
+  <rect x="398" y="74" width="176" height="16" rx="8" fill="#267653"/>
+  <rect x="418" y="108" width="90" height="6" rx="3" fill="#DDE8E1"/>
+  <rect x="418" y="124" width="136" height="6" rx="3" fill="#DDE8E1"/>
+  <rect x="418" y="140" width="120" height="6" rx="3" fill="#DDE8E1"/>
+  <rect x="418" y="160" width="54" height="24" rx="12" fill="#DCEFE8"/>
+
+  <!-- shelves -->
+  <rect x="66" y="80" width="176" height="10" rx="5" fill="#DDE8E1"/>
+  <rect x="82" y="46" width="20" height="34" rx="3" fill="#75B99B"/>
+  <rect x="108" y="54" width="20" height="26" rx="3" fill="#F5C879"/>
+  <rect x="134" y="42" width="20" height="38" rx="3" fill="#DCEFE8"/>
+  <rect x="160" y="52" width="20" height="28" rx="3" fill="#267653"/>
+
+  <!-- staff behind counter -->
+  <circle cx="410" cy="196" r="30" fill="#344A40"/>
+  <circle cx="412" cy="203" r="25" fill="#8B5E3C"/>
+  <path d="M368 268c0-24 19-44 43-44s43 20 43 44v54h-86v-54Z" fill="#344A40"/>
+  <rect x="378" y="232" width="16" height="72" rx="8" fill="#344A40"/>
+  <rect x="430" y="232" width="16" height="72" rx="8" fill="#344A40"/>
+  <circle cx="376" cy="306" r="9" fill="#8B5E3C"/>
+  <circle cx="438" cy="306" r="9" fill="#8B5E3C"/>
+
+  <!-- resident in front -->
+  <circle cx="196" cy="186" r="31" fill="#344A40"/>
+  <circle cx="198" cy="193" r="26" fill="#B07A50"/>
+  <path d="M152 262c0-26 20-46 46-46s46 20 46 46v70h-92v-70Z" fill="#E6F3FA"/>
+  <rect x="164" y="228" width="16" height="88" rx="8" fill="#E6F3FA"/>
+  <path d="M252 262h64a9 9 0 0 1 0 18h-64" fill="#E6F3FA"/>
+  <circle cx="318" cy="270" r="10" fill="#B07A50"/>
+
+  <!-- document -->
+  <g transform="rotate(-7 318 246)">
+    <rect x="288" y="222" width="64" height="48" rx="6" fill="#FFFFFF"/>
+    <rect x="298" y="234" width="30" height="5" rx="2.5" fill="#267653"/>
+    <rect x="298" y="245" width="44" height="4" rx="2" fill="#DDE8E1"/>
+    <rect x="298" y="254" width="38" height="4" rx="2" fill="#DDE8E1"/>
+  </g>
+
+  <!-- counter -->
+  <rect x="48" y="318" width="544" height="146" rx="22" fill="#FFFFFF"/>
+  <rect x="48" y="318" width="544" height="26" rx="13" fill="#267653"/>
+  <rect x="96" y="372" width="120" height="8" rx="4" fill="#DDE8E1"/>
+  <rect x="96" y="392" width="72" height="8" rx="4" fill="#DDE8E1"/>
+  <rect x="452" y="368" width="90" height="66" rx="10" fill="#DCEFE8"/>
+  <rect x="466" y="380" width="62" height="6" rx="3" fill="#75B99B"/>
+  <rect x="466" y="394" width="44" height="6" rx="3" fill="#75B99B"/>
+
+  <!-- plant -->
+  <rect x="34" y="386" width="44" height="50" rx="8" fill="#267653"/>
+  <path d="M56 386c-4-24-18-38-34-46M56 386c4-22 18-36 34-44M56 386c-2-26 6-44 16-54" stroke="#75B99B" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="22" cy="338" r="12" fill="#75B99B"/>
+  <circle cx="92" cy="340" r="12" fill="#75B99B"/>
+  <circle cx="74" cy="320" r="10" fill="#75B99B"/>
+</svg>

@@ -2,22 +2,53 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
-import { toPng } from 'html-to-image';
-import { supabase } from '../../lib/supabase';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import RequestSlip, { getRequestSlipNumber } from '../../components/RequestSlip';
-import FeedbackModal from '../../components/FeedbackModal';
+import { toPng } from 'html-to-image';
 
-interface Resident {
-  id: string;
-  profile_id: string | null;
-  full_name: string;
-  address: string;
-  age: number | null;
-  gender: string | null;
-  is_verified: boolean;
-  bid_number?: string;
-}
+import { supabase } from '@/lib/supabase';
+import RequestSlip, { getRequestSlipNumber } from '@/components/RequestSlip';
+import FeedbackModal from '@/components/FeedbackModal';
+import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { Button, buttonClasses } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Modal } from '@/components/ui/Modal';
+import { StageLayout } from '@/components/portal/StageLayout';
+import { ProfilePill } from '@/components/portal/ProfilePill';
+import {
+  AnnouncementBar,
+  FeatureCard,
+  ShortcutButton,
+  StagePanel,
+  TaskRow,
+} from '@/components/portal/StageWidgets';
+import {
+  AlertIcon,
+  BellIcon,
+  CalendarIcon,
+  CheckCircleIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ClipboardIcon,
+  ClockIcon,
+  DownloadIcon,
+  FileTextIcon,
+  IdCardIcon,
+  LogOutIcon,
+  PencilIcon,
+  PlusIcon,
+  PrinterIcon,
+  SearchIcon,
+  ShieldCheckIcon,
+  TrashIcon,
+  UploadIcon,
+  UsersIcon,
+} from '@/components/ui/icons';
+import type { Announcement, ResidentRow, ServiceRequestRow } from '@/lib/types';
+import imapMark from '@/assets/illustrations/imap.svg';
+
+type Tab = 'residents' | 'requests' | 'calendar' | 'announcements';
+type Feedback = { type: 'error' | 'success'; message: string } | null;
 
 function parseCsvRow(row: string): string[] {
   const cells: string[] = [];
@@ -53,285 +84,327 @@ function normalizeGender(value: string): string | null {
   return null;
 }
 
-interface ServiceRequest {
-  id: string;
-  resident_id: string;
-  full_name: string;
-  service_type: string;
-  purpose: string;
-  status: string;
-  rejection_reason?: string | null;
-  age: number;
-  address?: string;
-  sex?: string;
-  civil_status?: string;
-  birthday?: string;
-  birth_place?: string;
-  height?: string;
-  weight?: string;
-  business?: string;
-  capital?: string;
-  cp_no?: string;
-  slip_number?: string;
-  request_for?: string;
-  created_at: string;
-  received_at?: string;
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
 }
+
+const ANNOUNCEMENT_CATEGORIES = ['General', 'Advisory', 'Health', 'Schedule', 'Program'];
 
 export default function AdminPage() {
   const router = useRouter();
-  const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
-  const [requestToReject, setRequestToReject] = useState<ServiceRequest | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>('requests');
+
+  const [residents, setResidents] = useState<ResidentRow[]>([]);
+  const [requests, setRequests] = useState<ServiceRequestRow[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcementsReady, setAnnouncementsReady] = useState(true);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [feedback, setFeedback] = useState<Feedback>(null);
+
+  // Resident registry
+  const [residentSearch, setResidentSearch] = useState('');
+  const [residentBusy, setResidentBusy] = useState(false);
+  const [showResidentForm, setShowResidentForm] = useState(false);
+  const [editingResident, setEditingResident] = useState<ResidentRow | null>(null);
+  const [residentToDelete, setResidentToDelete] = useState<ResidentRow | null>(null);
+  const [residentForm, setResidentForm] = useState({
+    full_name: '',
+    address: '',
+    age: '',
+    gender: '',
+  });
+  const residentImportRef = useRef<HTMLInputElement>(null);
+
+  // Requests
+  const [requestFilter, setRequestFilter] = useState<'active' | 'pending' | 'ready'>(
+    'active',
+  );
+  const [requestSearch, setRequestSearch] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState<ServiceRequestRow | null>(null);
+  const [requestToReject, setRequestToReject] = useState<ServiceRequestRow | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionError, setRejectionError] = useState('');
   const [savingRejection, setSavingRejection] = useState(false);
-  const [slipRequest, setSlipRequest] = useState<ServiceRequest | null>(null);
+  const [busyRequestId, setBusyRequestId] = useState<string | null>(null);
+
+  // Slip
+  const [slipRequest, setSlipRequest] = useState<ServiceRequestRow | null>(null);
   const slipRef = useRef<HTMLDivElement>(null);
-  const [activeTab, setActiveTab] = useState<'residents' | 'requests' | 'calendar'>('residents');
-  const [residents, setResidents] = useState<Resident[]>([]);
-  const [residentSearch, setResidentSearch] = useState('');
-  const [showResidentForm, setShowResidentForm] = useState(false);
-  const [editingResident, setEditingResident] = useState<Resident | null>(null);
-  const [residentToDelete, setResidentToDelete] = useState<Resident | null>(null);
-  const [residentForm, setResidentForm] = useState({ full_name: '', address: '', age: '', gender: '' });
-  const [residentFeedback, setResidentFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
-  const [residentNotice, setResidentNotice] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
-  const [adminNotice, setAdminNotice] = useState<{ title: string; message: string } | null>(null);
-  const [residentLoading, setResidentLoading] = useState(false);
-  const residentImportRef = useRef<HTMLInputElement>(null);
-  const [requests, setRequests] = useState<ServiceRequest[]>([]);
-  const [archivedRequests, setArchivedRequests] = useState<ServiceRequest[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [accessDenied, setAccessDenied] = useState(false);
 
-  // Calendar State
+  // Calendar
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDateRequests, setSelectedDateRequests] = useState<ServiceRequest[] | null>(null);
-  const [selectedDateLabel, setSelectedDateLabel] = useState<string>('');
+  const [selectedDateRequests, setSelectedDateRequests] = useState<
+    ServiceRequestRow[] | null
+  >(null);
+  const [selectedDateLabel, setSelectedDateLabel] = useState('');
 
-  const [stats, setStats] = useState({
-    totalRegistered: 0,
-    pendingResidents: 0,
-    activeRequests: 0,
-    processedToday: 0
+  // Announcements
+  const [announcementForm, setAnnouncementForm] = useState({
+    id: null as string | null,
+    title: '',
+    body: '',
+    category: 'General',
+    published: true,
   });
+  const [announcementBusy, setAnnouncementBusy] = useState(false);
+  const [announcementError, setAnnouncementError] = useState('');
+  const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(
+    null,
+  );
 
-  const showResidentFeedback = (feedback: { type: 'error' | 'success'; message: string }) => {
-    setResidentFeedback(feedback);
-    setResidentNotice(feedback);
+  const [notice, setNotice] = useState<{ title: string; message: string } | null>(null);
+
+  const showFeedback = (type: 'error' | 'success', message: string) => {
+    setFeedback({ type, message });
   };
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoader = false) => {
+    if (showLoader) setLoading(true);
+    else setRefreshing(true);
+
     try {
-      const [residentResult, requestResult] = await Promise.all([
+      const [residentResult, requestResult, announcementResult] = await Promise.all([
         supabase.from('residents').select('*').order('full_name'),
-        supabase.from('service_requests').select('*').order('created_at', { ascending: false }),
+        supabase
+          .from('service_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('announcements')
+          .select('*')
+          .order('published_at', { ascending: false }),
       ]);
 
       if (residentResult.error) {
         console.error('Resident registry fetch failed:', residentResult.error);
-        showResidentFeedback({
-          type: 'error',
-          message: `Could not load the resident registry. Apply the resident registry migration in Supabase. ${residentResult.error.message}`,
-        });
+        showFeedback(
+          'error',
+          `Could not load the resident registry. ${residentResult.error.message}`,
+        );
       } else {
-        setResidents((residentResult.data || []) as Resident[]);
-        setResidentFeedback(null);
-        setStats((current) => ({
-          ...current,
-          totalRegistered: residentResult.data?.length || 0,
-          pendingResidents: (residentResult.data || []).filter(p => !p.is_verified).length,
-        }));
+        setResidents((residentResult.data ?? []) as ResidentRow[]);
       }
 
       if (requestResult.error) {
         console.error('Service request fetch failed:', requestResult.error);
-        return;
+        showFeedback('error', `Could not load service requests. ${requestResult.error.message}`);
+      } else {
+        setRequests((requestResult.data ?? []) as ServiceRequestRow[]);
       }
 
-      if (requestResult.data) {
-        const allRequests = requestResult.data;
-
-        // Rejected requests leave the active queue but remain available in history.
-        const activeList = allRequests.filter(
-          r => r.status !== 'received' && r.status !== 'rejected'
-        ) as ServiceRequest[];
-        const archivedList = allRequests.filter(
-          r => r.status === 'received' || r.status === 'rejected'
-        ) as ServiceRequest[];
-        
-        setRequests(activeList);
-        setArchivedRequests(archivedList);
-
-        const today = new Date().toDateString();
-        setStats((current) => ({
-          ...current,
-          activeRequests: activeList.filter(r => r.status === 'pending').length,
-          // Count only active ready/claimed requests for today's active completed stats
-          processedToday: activeList.filter(r => 
-            (r.status === 'ready' || r.status === 'claimed') && 
-            new Date(r.created_at).toDateString() === today
-          ).length
-        }));
+      if (announcementResult.error) {
+        setAnnouncementsReady(false);
+        setAnnouncements([]);
+      } else {
+        setAnnouncementsReady(true);
+        setAnnouncements((announcementResult.data ?? []) as Announcement[]);
       }
-    } catch (err) {
-      console.error("Fetch error:", err);
-      showResidentFeedback({
-        type: 'error',
-        message: 'Could not load resident records. Please try again or contact the administrator.',
-      });
+    } catch (error) {
+      console.error('Admin fetch failed:', error);
+      showFeedback('error', 'Could not load the staff workspace. Please refresh the page.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
     let cancelled = false;
 
-    const verifyAdminAccess = async () => {
-      // 1. Make sure the visitor is signed in.
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace('/auth');
-        return;
-      }
-
-      // 2. Make sure the signed-in user actually has an admin role.
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+    // Kick off the first load without a synchronous state update, so the
+    // initial skeleton renders before data arrives.
+    const load = async () => {
+      const results = await Promise.all([
+        supabase.from('residents').select('*').order('full_name'),
+        supabase
+          .from('service_requests')
+          .select('*')
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('announcements')
+          .select('*')
+          .order('published_at', { ascending: false }),
+      ]);
 
       if (cancelled) return;
 
-      const isAdmin = !error && profile?.role === 'admin';
+      const [residentResult, requestResult, announcementResult] = results;
 
-      if (!isAdmin) {
-        setAccessDenied(true);
-        return;
+      if (residentResult.error) {
+        console.error('Resident registry fetch failed:', residentResult.error);
+        setFeedback({
+          type: 'error',
+          message: `Could not load the resident registry. ${residentResult.error.message}`,
+        });
+      } else {
+        setResidents((residentResult.data ?? []) as ResidentRow[]);
       }
 
-      // 3. Only load admin data after authorization succeeds.
-      await fetchData();
+      if (requestResult.error) {
+        console.error('Service request fetch failed:', requestResult.error);
+        setFeedback({
+          type: 'error',
+          message: `Could not load service requests. ${requestResult.error.message}`,
+        });
+      } else {
+        setRequests((requestResult.data ?? []) as ServiceRequestRow[]);
+      }
+
+      if (announcementResult.error) {
+        setAnnouncementsReady(false);
+        setAnnouncements([]);
+      } else {
+        setAnnouncementsReady(true);
+        setAnnouncements((announcementResult.data ?? []) as Announcement[]);
+      }
+
+      setLoading(false);
+      setRefreshing(false);
     };
 
-    verifyAdminAccess();
+    load().catch((error) => {
+      if (cancelled) return;
+      console.error('Admin fetch failed:', error);
+      setFeedback({
+        type: 'error',
+        message: 'Could not load the staff workspace. Please refresh the page.',
+      });
+      setLoading(false);
+      setRefreshing(false);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, []);
 
-  const approveResident = async (resident: Resident) => {
-    if (resident.profile_id) {
-      const bidNumber = `MPRNG-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const { error } = await supabase
-        .from('profiles')
-        .update({ is_verified: true, bid_number: bidNumber })
-        .eq('id', resident.profile_id);
-      if (error) {
-        console.error('Failed to verify resident account:', error);
-        showResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
-        return;
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.replace('/auth');
+    router.refresh();
+  };
+
+  // --------------------------------------------------------------- Residents
+  const approveResident = async (resident: ResidentRow) => {
+    setResidentBusy(true);
+    try {
+      if (resident.profile_id) {
+        const bidNumber = `MPRNG-${new Date().getFullYear()}-${Math.floor(
+          1000 + Math.random() * 9000,
+        )}`;
+        const { error } = await supabase
+          .from('profiles')
+          .update({ is_verified: true, bid_number: bidNumber })
+          .eq('id', resident.profile_id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('residents')
+          .update({ is_verified: true })
+          .eq('id', resident.id);
+        if (error) throw error;
       }
-    } else {
-      const { error } = await supabase
-        .from('residents')
-        .update({ is_verified: true })
-        .eq('id', resident.id);
-      if (error) {
-        console.error('Failed to verify resident record:', error);
-        showResidentFeedback({ type: 'error', message: `Could not verify resident: ${error.message}` });
-        return;
-      }
+
+      await fetchData();
+      showFeedback(
+        'success',
+        `${resident.full_name} is verified as a bona fide resident.`,
+      );
+    } catch (error) {
+      console.error('Failed to verify resident:', error);
+      showFeedback('error', `Could not verify resident: ${(error as Error).message}`);
+    } finally {
+      setResidentBusy(false);
     }
-
-    await fetchData();
-    showResidentFeedback({ type: 'success', message: `${resident.full_name} is verified as a bona fide resident.` });
   };
 
   const openNewResidentForm = () => {
     setEditingResident(null);
     setResidentForm({ full_name: '', address: '', age: '', gender: '' });
-    setResidentFeedback(null);
     setShowResidentForm(true);
   };
 
-  const openEditResidentForm = (resident: Resident) => {
+  const openEditResidentForm = (resident: ResidentRow) => {
     setEditingResident(resident);
     setResidentForm({
       full_name: resident.full_name,
       address: resident.address,
-      age: resident.age?.toString() || '',
-      gender: resident.gender || '',
+      age: resident.age?.toString() ?? '',
+      gender: resident.gender ?? '',
     });
-    setResidentFeedback(null);
     setShowResidentForm(true);
-  };
-
-  const deleteResident = async () => {
-    if (!residentToDelete) return;
-
-    setResidentLoading(true);
-    const { error } = await supabase
-      .from('residents')
-      .delete()
-      .eq('id', residentToDelete.id);
-    setResidentLoading(false);
-
-    if (error) {
-      console.error('Failed to remove resident registry record:', error);
-      showResidentFeedback({ type: 'error', message: `Could not remove resident record: ${error.message}` });
-      return;
-    }
-
-    setResidentToDelete(null);
-    await fetchData();
-    showResidentFeedback({ type: 'success', message: `${residentToDelete.full_name} was removed from the resident registry.` });
   };
 
   const saveResident = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const age = residentForm.age.trim() ? Number(residentForm.age) : null;
+
     if (age !== null && (!Number.isInteger(age) || age < 0 || age > 120)) {
-      showResidentFeedback({ type: 'error', message: 'Enter a valid age between 0 and 120.' });
+      showFeedback('error', 'Enter a valid age between 0 and 120.');
       return;
     }
 
-    setResidentLoading(true);
-    setResidentFeedback(null);
-    const values = {
-      full_name: residentForm.full_name.trim(),
-      address: residentForm.address.trim(),
-      age,
-      gender: residentForm.gender || null,
-    };
+    setResidentBusy(true);
+    try {
+      const values = {
+        full_name: residentForm.full_name.trim(),
+        address: residentForm.address.trim(),
+        age,
+        gender: residentForm.gender || null,
+      };
 
-    const { error } = editingResident
-      ? await supabase.rpc('admin_update_resident_record', {
-          p_resident_id: editingResident.id,
-          p_full_name: values.full_name,
-          p_address: values.address,
-          p_age: values.age,
-          p_gender: values.gender,
-        })
-      : await supabase.from('residents').insert(values);
-    setResidentLoading(false);
+      const { error } = editingResident
+        ? await supabase.rpc('admin_update_resident_record', {
+            p_resident_id: editingResident.id,
+            p_full_name: values.full_name,
+            p_address: values.address,
+            p_age: values.age,
+            p_gender: values.gender,
+          })
+        : await supabase.from('residents').insert(values);
 
-    if (error) {
-      console.error('Failed to save resident record:', error);
-      showResidentFeedback({ type: 'error', message: `Could not save resident: ${error.message}` });
-      return;
+      if (error) throw error;
+
+      setShowResidentForm(false);
+      setEditingResident(null);
+      await fetchData();
+      showFeedback('success', editingResident ? 'Resident record updated.' : 'Resident record added.');
+    } catch (error) {
+      console.error('Failed to save resident:', error);
+      showFeedback('error', `Could not save resident: ${(error as Error).message}`);
+    } finally {
+      setResidentBusy(false);
     }
+  };
 
-    setShowResidentForm(false);
-    const successMessage = editingResident ? 'Resident record updated.' : 'Resident record added.';
-    setEditingResident(null);
-    await fetchData();
-    showResidentFeedback({ type: 'success', message: successMessage });
+  const deleteResident = async () => {
+    if (!residentToDelete) return;
+    setResidentBusy(true);
+    try {
+      const { error } = await supabase
+        .from('residents')
+        .delete()
+        .eq('id', residentToDelete.id);
+      if (error) throw error;
+
+      const name = residentToDelete.full_name;
+      setResidentToDelete(null);
+      await fetchData();
+      showFeedback('success', `${name} was removed from the resident registry.`);
+    } catch (error) {
+      console.error('Failed to delete resident:', error);
+      showFeedback('error', `Could not remove resident: ${(error as Error).message}`);
+    } finally {
+      setResidentBusy(false);
+    }
   };
 
   const importResidentRoster = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -339,31 +412,46 @@ export default function AdminPage() {
     event.target.value = '';
     if (!file) return;
 
-    setResidentFeedback(null);
     try {
       const text = (await file.text()).replace(/^\uFEFF/, '');
-      const rows = text.split(/\r?\n/).filter((row) => row.trim()).map(parseCsvRow);
+      const rows = text
+        .split(/\r?\n/)
+        .filter((row) => row.trim())
+        .map(parseCsvRow);
+
       if (rows.length < 2) {
-        showResidentFeedback({ type: 'error', message: 'The CSV must include a header row and at least one resident.' });
+        showFeedback('error', 'The CSV must include a header row and at least one resident.');
         return;
       }
 
-      const headers = rows[0].map((header) => header.trim().toLowerCase().replace(/[\s_-]+/g, ''));
-      const nameIndex = headers.findIndex((header) => ['name', 'fullname', 'residentname'].includes(header));
-      const addressIndex = headers.findIndex((header) => ['address', 'homeaddress', 'purok'].includes(header));
+      const headers = rows[0].map((header) =>
+        header.trim().toLowerCase().replace(/[\s_-]+/g, ''),
+      );
+      const nameIndex = headers.findIndex((header) =>
+        ['name', 'fullname', 'residentname'].includes(header),
+      );
+      const addressIndex = headers.findIndex((header) =>
+        ['address', 'homeaddress', 'purok'].includes(header),
+      );
       const ageIndex = headers.findIndex((header) => header === 'age');
       const genderIndex = headers.findIndex((header) => ['gender', 'sex'].includes(header));
+
       if (nameIndex < 0 || addressIndex < 0) {
-        setResidentFeedback({
-          type: 'error',
-          message: 'CSV needs Name and Address columns. Age and Gender columns are optional.',
-        });
+        showFeedback(
+          'error',
+          'CSV needs Name and Address columns. Age and Gender columns are optional.',
+        );
         return;
       }
 
-      const seen = new Set(residents.map((resident) =>
-        `${resident.full_name.trim().toLowerCase()}|${resident.address.trim().toLowerCase()}`
-      ));
+      const seen = new Set(
+        residents.map(
+          (resident) =>
+            `${resident.full_name.trim().toLowerCase()}|${resident.address
+              .trim()
+              .toLowerCase()}`,
+        ),
+      );
       const entries: Array<{
         full_name: string;
         address: string;
@@ -390,7 +478,9 @@ export default function AdminPage() {
           return;
         }
         if (genderValue && !gender) {
-          errors.push(`Row ${rowNumber}: gender must be Female, Male, Other, or Prefer not to say.`);
+          errors.push(
+            `Row ${rowNumber}: gender must be Female, Male, Other, or Prefer not to say.`,
+          );
           return;
         }
 
@@ -401,55 +491,65 @@ export default function AdminPage() {
       });
 
       if (errors.length) {
-        setResidentFeedback({
-          type: 'error',
-          message: `Import stopped without adding records. ${errors.slice(0, 3).join(' ')}${errors.length > 3 ? ` Plus ${errors.length - 3} more issue(s).` : ''}`,
-        });
+        showFeedback(
+          'error',
+          `Import stopped without adding records. ${errors.slice(0, 3).join(' ')}${
+            errors.length > 3 ? ` Plus ${errors.length - 3} more issue(s).` : ''
+          }`,
+        );
         return;
       }
       if (!entries.length) {
-        showResidentFeedback({ type: 'error', message: 'No new residents found in the CSV.' });
+        showFeedback('error', 'No new residents found in the CSV.');
         return;
       }
 
-      setResidentLoading(true);
+      setResidentBusy(true);
       const { error } = await supabase.from('residents').insert(entries);
-      setResidentLoading(false);
-      if (error) {
-        console.error('Failed to import resident roster:', error);
-        showResidentFeedback({ type: 'error', message: `Could not import roster: ${error.message}` });
-        return;
-      }
+      if (error) throw error;
 
       await fetchData();
-      showResidentFeedback({ type: 'success', message: `Imported ${entries.length} resident record(s).` });
+      showFeedback('success', `Imported ${entries.length} resident record(s).`);
     } catch (error) {
-      console.error('Failed to read resident roster:', error);
-      showResidentFeedback({ type: 'error', message: 'Could not read the file. Please upload a valid CSV roster.' });
+      console.error('Failed to import roster:', error);
+      showFeedback('error', 'Could not read the file. Please upload a valid CSV roster.');
     } finally {
-      setResidentLoading(false);
+      setResidentBusy(false);
     }
   };
 
-  const updateRequestStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase.from('service_requests').update({ status: newStatus }).eq('id', id);
-    if (!error) {
-      fetchData();
+  // ---------------------------------------------------------------- Requests
+  const updateRequestStatus = async (
+    request: ServiceRequestRow,
+    status: 'ready' | 'received',
+  ) => {
+    setBusyRequestId(request.id);
+    try {
+      const payload =
+        status === 'received'
+          ? { status, received_at: new Date().toISOString() }
+          : { status };
+
+      const { error } = await supabase
+        .from('service_requests')
+        .update(payload)
+        .eq('id', request.id);
+      if (error) throw error;
+
       setSelectedRequest(null);
+      await fetchData();
+      showFeedback(
+        'success',
+        status === 'ready'
+          ? `Request ${getRequestSlipNumber(request)} is ready for pickup.`
+          : `Request ${getRequestSlipNumber(request)} was marked received.`,
+      );
+    } catch (error) {
+      console.error('Failed to update request:', error);
+      showFeedback('error', `Could not update request: ${(error as Error).message}`);
+    } finally {
+      setBusyRequestId(null);
     }
-  };
-
-  const openRejectDialog = (request: ServiceRequest) => {
-    setRequestToReject(request);
-    setRejectionReason('');
-    setRejectionError('');
-  };
-
-  const closeRejectDialog = () => {
-    if (savingRejection) return;
-    setRequestToReject(null);
-    setRejectionReason('');
-    setRejectionError('');
   };
 
   const rejectRequest = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -464,13 +564,13 @@ export default function AdminPage() {
 
     setSavingRejection(true);
     setRejectionError('');
+
     const { error } = await supabase
       .from('service_requests')
       .update({ status: 'rejected', rejection_reason: reason })
       .eq('id', requestToReject.id);
 
     if (error) {
-      console.error('Failed to reject service request:', error);
       setRejectionError(`Could not reject this request: ${error.message}`);
       setSavingRejection(false);
       return;
@@ -481,96 +581,29 @@ export default function AdminPage() {
     setRejectionReason('');
     setSavingRejection(false);
     await fetchData();
-  };
-
-  const openRequestDetails = (request: ServiceRequest) => {
-    setSelectedRequest(request);
-  };
-
-  // Mark Request as Received: moves it out of active tables and into calendar storage
-  const markAsReceived = async (id: string) => {
-    const timestamp = new Date().toISOString();
-    const { error } = await supabase
-      .from('service_requests')
-      .update({ status: 'received', received_at: timestamp })
-      .eq('id', id);
-
-    if (error) {
-      setAdminNotice({ title: 'Could Not Archive Request', message: error.message });
-    } else {
-      fetchData();
-      setSelectedRequest(null);
-    }
-  };
-
-  // Calendar Helpers
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const firstDayOfMonth = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const allCombinedRequests = [...requests, ...archivedRequests];
-
-  const getRequestsForDate = (day: number) => {
-    const targetDateStr = new Date(year, month, day).toDateString();
-    return allCombinedRequests.filter(
-      r => new Date(r.created_at).toDateString() === targetDateStr
-    );
-  };
-
-  const handleDayClick = (day: number) => {
-    const dateObj = new Date(year, month, day);
-    const dayRequests = getRequestsForDate(day);
-    setSelectedDateLabel(dateObj.toLocaleDateString(undefined, { dateStyle: 'full' }));
-    setSelectedDateRequests(dayRequests);
-  };
-
-  const searchTerm = residentSearch.trim().toLowerCase();
-  const filteredResidents = residents.filter((resident) =>
-    [resident.full_name, resident.address, resident.gender || '', resident.age?.toString() || '']
-      .some((value) => value.toLowerCase().includes(searchTerm))
-  );
-  const residentDemographics = {
-    female: residents.filter((resident) => resident.gender?.toLowerCase() === 'female').length,
-    male: residents.filter((resident) => resident.gender?.toLowerCase() === 'male').length,
-    otherGender: residents.filter((resident) =>
-      resident.gender && !['female', 'male'].includes(resident.gender.toLowerCase())
-    ).length,
-    noGender: residents.filter((resident) => !resident.gender).length,
-    under18: residents.filter((resident) => resident.age !== null && resident.age < 18).length,
-    adult: residents.filter((resident) => resident.age !== null && resident.age >= 18 && resident.age < 60).length,
-    senior: residents.filter((resident) => resident.age !== null && resident.age >= 60).length,
-    noAge: residents.filter((resident) => resident.age === null).length,
-  };
-
-  const openSlip = (request: ServiceRequest) => {
-    setSelectedRequest(null);
-    setSelectedDateRequests(null);
-    setSlipRequest(request);
+    showFeedback('success', 'Request rejected. The reason is visible to the resident.');
   };
 
   const downloadSlip = async () => {
     if (!slipRef.current || !slipRequest) return;
-
     try {
       const dataUrl = await toPng(slipRef.current, { cacheBust: true, pixelRatio: 2 });
       const link = document.createElement('a');
       link.download = `Request-Slip-${getRequestSlipNumber(slipRequest)}.png`;
       link.href = dataUrl;
       link.click();
-    } catch (err) {
-      console.error('Failed to download request slip:', err);
-      setAdminNotice({ title: 'Could Not Download Slip', message: 'Could not generate the slip image. Please try printing instead.' });
+    } catch (error) {
+      console.error('Failed to download slip:', error);
+      setNotice({
+        title: 'Could Not Download Slip',
+        message: 'Could not generate the slip image. Please try printing instead.',
+      });
     }
   };
 
   const printSlip = async () => {
     if (!slipRef.current) return;
-
     try {
-      // Render the slip to a high-resolution image, then print it from a
-      // dedicated frame. This avoids browser print CSS quirks and always
-      // prints the selected slip regardless of which tab opened it.
       const dataUrl = await toPng(slipRef.current, {
         cacheBust: true,
         pixelRatio: 3,
@@ -614,149 +647,678 @@ export default function AdminPage() {
       const image = frameDocument.querySelector('img');
       if (image && !image.complete) {
         image.addEventListener('load', triggerPrint, { once: true });
-        image.addEventListener('error', () => {
-          cleanup();
-          setAdminNotice({ title: 'Could Not Print Slip', message: 'The slip image could not be prepared. Please try again.' });
-        }, { once: true });
+        image.addEventListener(
+          'error',
+          () => {
+            cleanup();
+            setNotice({
+              title: 'Could Not Print Slip',
+              message: 'The slip image could not be prepared. Please try again.',
+            });
+          },
+          { once: true },
+        );
       } else {
         triggerPrint();
       }
-    } catch (err) {
-      console.error('Failed to print request slip:', err);
-      setAdminNotice({ title: 'Could Not Print Slip', message: 'Could not prepare the slip for printing. Please try again.' });
+    } catch (error) {
+      console.error('Failed to print slip:', error);
+      setNotice({
+        title: 'Could Not Print Slip',
+        message: 'Could not prepare the slip for printing. Please try again.',
+      });
     }
   };
 
-  if (accessDenied) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100 p-6 font-sans">
-        <div role="alert" className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-red-100">
-          <div className="bg-red-600 p-8 text-center">
-            <h1 className="text-2xl font-black text-white uppercase tracking-widest">Access Denied</h1>
-            <p className="text-red-100 text-sm font-bold mt-2">Administrator access only</p>
-          </div>
+  // ------------------------------------------------------------- Announcements
+  const resetAnnouncementForm = () => {
+    setAnnouncementForm({
+      id: null,
+      title: '',
+      body: '',
+      category: 'General',
+      published: true,
+    });
+    setAnnouncementError('');
+  };
 
-          <div className="p-8 text-center space-y-6">
-            <p className="text-slate-600 font-bold leading-relaxed">
-              Your account does not have administrator permissions. You cannot view the admin portal.
-            </p>
-            <p className="text-slate-400 text-xs font-bold leading-relaxed">
-              If you believe this is a mistake, please contact the barangay administrator.
-            </p>
-            <button
-              onClick={() => router.replace('/dashboard')}
-              className="w-full bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest"
-            >
-              Back to Resident Dashboard
-            </button>
+  const saveAnnouncement = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setAnnouncementError('');
+
+    if (announcementForm.title.trim().length < 3) {
+      setAnnouncementError('Add a title with at least 3 characters.');
+      return;
+    }
+    if (announcementForm.body.trim().length < 3) {
+      setAnnouncementError('Add the announcement text.');
+      return;
+    }
+
+    setAnnouncementBusy(true);
+    try {
+      const payload = {
+        title: announcementForm.title.trim(),
+        body: announcementForm.body.trim(),
+        category: announcementForm.category,
+        published: announcementForm.published,
+      };
+
+      if (announcementForm.id) {
+        const existing = announcements.find(
+          (announcement) => announcement.id === announcementForm.id,
+        );
+        const shouldRestamp =
+          announcementForm.published && existing && !existing.published;
+
+        const { error } = await supabase
+          .from('announcements')
+          .update(shouldRestamp ? { ...payload, published_at: new Date().toISOString() } : payload)
+          .eq('id', announcementForm.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('announcements').insert({
+          ...payload,
+          published_at: new Date().toISOString(),
+        });
+        if (error) throw error;
+      }
+
+      resetAnnouncementForm();
+      await fetchData();
+      showFeedback(
+        'success',
+        announcementForm.id ? 'Announcement updated.' : 'Announcement published to the landing page.',
+      );
+    } catch (error) {
+      console.error('Failed to save announcement:', error);
+      setAnnouncementError(`Could not save this announcement: ${(error as Error).message}`);
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
+  const editAnnouncement = (announcement: Announcement) => {
+    setAnnouncementForm({
+      id: announcement.id,
+      title: announcement.title,
+      body: announcement.body,
+      category: announcement.category,
+      published: announcement.published,
+    });
+    setAnnouncementError('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteAnnouncement = async () => {
+    if (!announcementToDelete) return;
+    setAnnouncementBusy(true);
+    try {
+      const { error } = await supabase
+        .from('announcements')
+        .delete()
+        .eq('id', announcementToDelete.id);
+      if (error) throw error;
+      setAnnouncementToDelete(null);
+      await fetchData();
+      showFeedback('success', 'Announcement deleted.');
+    } catch (error) {
+      showFeedback('error', `Could not delete announcement: ${(error as Error).message}`);
+    } finally {
+      setAnnouncementBusy(false);
+    }
+  };
+
+  // ------------------------------------------------------------------ Derived
+  const activeRequests = requests.filter(
+    (request) => request.status === 'pending' || request.status === 'ready',
+  );
+  const pendingRequests = requests.filter((request) => request.status === 'pending');
+  const readyRequests = requests.filter((request) => request.status === 'ready');
+  const pendingVerification = residents.filter((resident) => !resident.is_verified);
+
+  const filteredRequests = requests
+    .filter((request) => {
+      if (requestFilter === 'pending') return request.status === 'pending';
+      if (requestFilter === 'ready') return request.status === 'ready';
+      return request.status === 'pending' || request.status === 'ready';
+    })
+    .filter((request) => {
+      const term = requestSearch.trim().toLowerCase();
+      if (!term) return true;
+      return `${request.full_name} ${request.service_type} ${getRequestSlipNumber(request)}`
+        .toLowerCase()
+        .includes(term);
+    });
+
+  const searchTerm = residentSearch.trim().toLowerCase();
+  const filteredResidents = residents.filter((resident) =>
+    [resident.full_name, resident.address, resident.gender ?? '', resident.age?.toString() ?? '']
+      .some((value) => value.toLowerCase().includes(searchTerm)),
+  );
+
+  const demographics = {
+    female: residents.filter((resident) => resident.gender?.toLowerCase() === 'female').length,
+    male: residents.filter((resident) => resident.gender?.toLowerCase() === 'male').length,
+    other: residents.filter(
+      (resident) => resident.gender && !['female', 'male'].includes(resident.gender.toLowerCase()),
+    ).length,
+    under18: residents.filter((resident) => resident.age !== null && resident.age < 18).length,
+    adult: residents.filter(
+      (resident) => resident.age !== null && resident.age >= 18 && resident.age < 60,
+    ).length,
+    senior: residents.filter((resident) => resident.age !== null && resident.age >= 60).length,
+  };
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const getRequestsForDate = (day: number) => {
+    const target = new Date(year, month, day).toDateString();
+    return requests.filter(
+      (request) => new Date(request.created_at).toDateString() === target,
+    );
+  };
+
+  const tabs: Array<{ key: Tab; label: string; icon: React.ReactNode; count?: number }> = [
+    {
+      key: 'requests',
+      label: 'Requests',
+      icon: <ClipboardIcon className="h-4 w-4" />,
+      count: activeRequests.length,
+    },
+    {
+      key: 'residents',
+      label: 'Residents',
+      icon: <UsersIcon className="h-4 w-4" />,
+      count: residents.length,
+    },
+    {
+      key: 'announcements',
+      label: 'Announcements',
+      icon: <BellIcon className="h-4 w-4" />,
+      count: announcements.length,
+    },
+    { key: 'calendar', label: 'Calendar', icon: <CalendarIcon className="h-4 w-4" /> },
+  ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-mist/60">
+        <div className="h-[68px] border-b border-line bg-white" />
+        <div className="page-shell py-10">
+          <div className="skeleton h-8 w-72 rounded-full" />
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="skeleton h-28 rounded-[20px]" />
+            ))}
           </div>
+          <div className="mt-4 skeleton h-80 rounded-[20px]" />
         </div>
       </div>
     );
   }
 
-  if (loading) return <div className="p-20 text-center font-black text-blue-900 animate-pulse">LOADING ADMIN PORTAL...</div>;
-
   return (
-    <div className="p-6 md:p-10 text-black bg-slate-50 min-h-screen font-sans">
-      <div className="max-w-6xl mx-auto pb-20">
-        
-        {/* HEADER */}
-        <header className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src="/maporong-logo.png"
-              alt="Barangay Maporong"
-              width={120}
-              height={75}
-              priority
-              className="h-12 w-auto object-contain"
-            />
-            <div>
-              <h1 className="text-4xl font-black text-blue-900 uppercase tracking-tighter italic">Admin</h1>
-              <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.3em]">Barangay Information System</p>
-            </div>
-          </div>
+    <div className="min-h-screen pb-16">
+      {/* Staff header */}
+      <header className="sticky top-0 z-40 border-b-2 border-line bg-white">
+        <div className="page-shell flex h-[68px] items-center justify-between gap-3">
+          <Link href="/admin" className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-mist p-1">
+              <Image
+                src={imapMark}
+                alt="iMaporong"
+                priority
+                className="h-full w-full object-contain"
+              />
+            </span>
+            <span className="min-w-0 leading-tight">
+              <span className="block truncate font-display text-base font-extrabold tracking-tight text-forest">
+                iMaporong
+              </span>
+              <span className="block text-[0.625rem] font-bold uppercase tracking-[0.14em] text-muted">
+                Staff workspace
+              </span>
+            </span>
+          </Link>
 
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all shadow-md active:scale-95"
+          <div className="flex items-center gap-1.5">
+            <span className="hidden items-center gap-1.5 rounded-full border border-[#c4e3d5] bg-mint px-2.5 py-1.5 text-[0.6875rem] font-bold text-pine sm:inline-flex">
+              <ShieldCheckIcon className="h-3.5 w-3.5" />
+              Administrator
+            </span>
+            <Link
+              href="/dashboard"
+              aria-label="Open resident view"
+              className={`${buttonClasses('quiet', 'sm')} px-2.5 text-xs`}
             >
-              Switch to Resident Page
+              <IdCardIcon className="h-4 w-4" />
+              <span>Resident</span>
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className={`${buttonClasses('dangerQuiet', 'sm')} px-2.5 text-xs`}
+            >
+              <LogOutIcon className="h-4 w-4" />
+              <span>Sign out</span>
             </button>
           </div>
-        </header>
+        </div>
 
-        {/* STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          <button
-            type="button"
-            onClick={() => setActiveTab('residents')}
-            aria-label={`View statistics for ${stats.totalRegistered} resident records`}
-            className="rounded-3xl border border-slate-100 bg-white p-6 text-left shadow-sm transition hover:border-green-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-600"
+        <nav
+          aria-label="Staff workspace"
+          className="page-shell no-scrollbar flex gap-1 overflow-x-auto pb-2.5"
+        >
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setActiveTab(tab.key)}
+              aria-current={activeTab === tab.key ? 'page' : undefined}
+              className={`inline-flex min-w-[84px] flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition ${
+                activeTab === tab.key
+                  ? 'bg-mint text-pine'
+                  : 'text-muted hover:bg-mist hover:text-forest'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                {tab.icon}
+                {typeof tab.count === 'number' && (
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold ${
+                      activeTab === tab.key
+                        ? 'bg-white text-pine'
+                        : 'bg-mist text-muted'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </span>
+              <span>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
+
+      <StageLayout className="pb-16" contentClassName="p-3 sm:p-5">
+      <main className="page-shell py-5">
+        {feedback && (
+          <div
+            role={feedback.type === 'error' ? 'alert' : 'status'}
+            className={`mb-5 flex items-start gap-2.5 rounded-2xl border p-3.5 text-sm font-semibold ${
+              feedback.type === 'error'
+                ? 'border-[#f1cccc] bg-rejected-bg text-rejected-ink'
+                : 'border-[#c4e3d5] bg-mint text-pine'
+            }`}
           >
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Residents · View statistics</p>
-            <p className="text-2xl font-black font-display">{stats.totalRegistered}</p>
-          </button>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-orange-500 border-slate-100">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Pending</p>
-            <p className="text-2xl font-black font-display text-orange-600">{stats.pendingResidents}</p>
+            {feedback.type === 'error' ? (
+              <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            ) : (
+              <CheckCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            )}
+            <span className="flex-1">{feedback.message}</span>
+            <button
+              type="button"
+              onClick={() => setFeedback(null)}
+              className="text-xs font-bold uppercase tracking-wide underline underline-offset-4"
+            >
+              Dismiss
+            </button>
           </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-blue-600 border-slate-100">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Active Requests</p>
-            <p className="text-2xl font-black font-display text-blue-600">{stats.activeRequests}</p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border-l-4 border-l-green-600 border-slate-100">
-            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Completed (Active)</p>
-            <p className="text-2xl font-black font-display text-green-600">{stats.processedToday}</p>
-          </div>
-        </div>
+        )}
 
-        {/* TABS */}
-        <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit mb-8 shadow-inner flex-wrap gap-1">
-          <button onClick={() => setActiveTab('residents')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'residents' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Resident Registry</button>
-          <button onClick={() => setActiveTab('requests')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'requests' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Service Requests</button>
-          <button onClick={() => setActiveTab('calendar')} className={`px-6 py-2.5 rounded-xl font-black text-[11px] uppercase transition-all ${activeTab === 'calendar' ? 'bg-white shadow-md text-blue-900' : 'text-slate-500'}`}>Monthly Calendar</button>
-        </div>
+        {activeTab === 'requests' && (
+          <section className="mb-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <ProfilePill
+                name="Barangay staff"
+                roleLabel="Administrator"
+                statusLabel={
+                  pendingRequests.length + pendingVerification.length > 0
+                    ? `${pendingRequests.length + pendingVerification.length} need review`
+                    : 'All caught up'
+                }
+                statusTone={
+                  pendingRequests.length + pendingVerification.length > 0 ? 'gold' : 'green'
+                }
+              />
+              <p className="text-xs font-semibold text-muted">
+                Staff workspace · Barangay Maporong
+              </p>
+            </div>
 
-        {/* TAB 1: RESIDENTS */}
-        {activeTab === 'residents' && (
-          <div className="bg-white border rounded-[32px] overflow-hidden shadow-xl border-slate-100">
-            <div className="p-6 md:p-8">
-              <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <h2 className="text-2xl font-black font-display text-blue-900">Resident Statistics</h2>
-                  <p className="mt-1 text-sm text-slate-500">Registry includes residents with and without portal accounts.</p>
-                </div>
-                <p className="text-xs font-bold text-slate-500">{stats.pendingResidents} pending bona fide verification</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  ['Female', residentDemographics.female, 'text-pink-700'],
-                  ['Male', residentDemographics.male, 'text-blue-700'],
-                  ['Other / undisclosed', residentDemographics.otherGender + residentDemographics.noGender, 'text-slate-700'],
-                  ['Age 0–17', residentDemographics.under18, 'text-indigo-700'],
-                  ['Age 18–59', residentDemographics.adult, 'text-green-700'],
-                  ['Age 60+', residentDemographics.senior, 'text-orange-700'],
-                  ['Age not provided', residentDemographics.noAge, 'text-slate-500'],
-                  ['Total residents', residents.length, 'text-blue-900'],
-                ].map(([label, count, color]) => (
-                  <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
-                    <p className={`mt-1 text-2xl font-black font-display ${color}`}>{count}</p>
-                  </div>
+            <div className="grid gap-4 xl:grid-cols-[0.95fr_1.7fr_0.95fr]">
+              <StagePanel title="Needs your attention" icon="alert">
+                {pendingRequests.slice(0, 3).map((request) => (
+                  <TaskRow
+                    key={request.id}
+                    icon="request"
+                    title={request.service_type}
+                    description={`${request.full_name} · ${getRequestSlipNumber(request)}`}
+                    action={
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedRequest(request)}
+                      >
+                        Review request
+                      </Button>
+                    }
+                  />
                 ))}
+                {pendingVerification.length > 0 && (
+                  <TaskRow
+                    icon="users"
+                    title={`${pendingVerification.length} resident record${pendingVerification.length === 1 ? '' : 's'} need verification`}
+                    description="Open the resident registry to review and verify resident records."
+                    action={
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setActiveTab('residents')}
+                      >
+                        Review residents
+                      </Button>
+                    }
+                  />
+                )}
+                {pendingRequests.length === 0 && pendingVerification.length === 0 && (
+                  <TaskRow
+                    icon="check"
+                    title="All caught up"
+                    description="There are no pending requests or resident records to verify."
+                  />
+                )}
+              </StagePanel>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FeatureCard
+                  icon="request"
+                  title="Review service requests"
+                  description={`${pendingRequests.length} pending for review · ${readyRequests.length} ready for pickup.`}
+                  tone="forest"
+                  action={
+                    <Button
+                      variant="secondary"
+                      onClick={() => setActiveTab('requests')}
+                    >
+                      Open request queue
+                    </Button>
+                  }
+                />
+                <FeatureCard
+                  icon="news"
+                  title="Share a barangay update"
+                  description="Create or update a notice for residents in the online noticeboard."
+                  tone="sky"
+                  action={
+                    <Button
+                      variant="secondary"
+                      onClick={() => setActiveTab('announcements')}
+                    >
+                      Open announcements
+                    </Button>
+                  }
+                />
               </div>
 
-              {residentFeedback && (
-                <p role={residentFeedback.type === 'error' ? 'alert' : 'status'} className={`mt-5 rounded-xl border p-4 text-sm font-semibold ${residentFeedback.type === 'error' ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
-                  {residentFeedback.message}
-                </p>
-              )}
+              <StagePanel title="Workspace modules" icon="home">
+                <div className="grid gap-2.5">
+                  <ShortcutButton
+                    icon="request"
+                    title="Requests"
+                    description="Review, update, and print request slips."
+                    onClick={() => setActiveTab('requests')}
+                  />
+                  <ShortcutButton
+                    icon="users"
+                    title="Residents"
+                    description="Search, verify, and maintain resident records."
+                    onClick={() => setActiveTab('residents')}
+                  />
+                  <ShortcutButton
+                    icon="news"
+                    title="Announcements"
+                    description="Publish updates for residents."
+                    onClick={() => setActiveTab('announcements')}
+                  />
+                  <ShortcutButton
+                    icon="calendar"
+                    title="Request calendar"
+                    description="Browse request activity by date."
+                    onClick={() => setActiveTab('calendar')}
+                  />
+                </div>
+              </StagePanel>
+            </div>
 
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-lg font-black font-display text-slate-800">Resident Records</h3>
+            <div className="mt-4">
+              <AnnouncementBar
+                title={
+                  announcements.find((announcement) => announcement.published)?.title ||
+                  'No published announcements yet'
+                }
+                description={
+                  announcements.find((announcement) => announcement.published)
+                    ? 'The latest notice currently published to residents.'
+                    : announcementsReady
+                      ? 'There are no published notices yet.'
+                      : 'The online noticeboard is being set up.'
+                }
+                action={
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setActiveTab('announcements')}
+                  >
+                    Open announcements
+                  </Button>
+                }
+              />
+            </div>
+          </section>
+        )}
+
+        {/* Stats */}
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {[
+            {
+              label: 'Resident records',
+              value: residents.length,
+              note: `${pendingVerification.length} awaiting verification`,
+              icon: <UsersIcon className="h-5 w-5" />,
+              tone: 'bg-mint text-pine',
+            },
+            {
+              label: 'Active requests',
+              value: activeRequests.length,
+              note: `${pendingRequests.length} pending review`,
+              icon: <ClipboardIcon className="h-5 w-5" />,
+              tone: 'bg-sky text-[#3a6478]',
+            },
+            {
+              label: 'Ready for pickup',
+              value: readyRequests.length,
+              note: 'Waiting at the barangay desk',
+              icon: <CheckCircleIcon className="h-5 w-5" />,
+              tone: 'bg-mint text-pine',
+            },
+            {
+              label: 'Published notices',
+              value: announcements.filter((announcement) => announcement.published).length,
+              note: `${announcements.length} total announcements`,
+              icon: <BellIcon className="h-5 w-5" />,
+              tone: 'bg-[#fdf3de] text-[#8a6116]',
+            },
+          ].map((stat) => (
+            <div
+              key={stat.label}
+              className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-muted">
+                  {stat.label}
+                </p>
+                <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${stat.tone}`}>
+                  {stat.icon}
+                </span>
+              </div>
+              <p className="mt-3 font-display text-3xl font-extrabold tracking-tight text-forest">
+                {stat.value}
+              </p>
+              <p className="body-sm mt-1">{stat.note}</p>
+            </div>
+          ))}
+        </section>
+
+        {refreshing && (
+          <p className="mt-3 text-xs font-semibold text-muted">Refreshing records…</p>
+        )}
+
+        {/* ------------------------------------------------------------- Requests */}
+        {activeTab === 'requests' && (
+          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-card">
+            <div className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="heading-2">Service request queue</h2>
+                <p className="body-sm mt-1">
+                  Review details, approve, reject, and print the request slip.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="relative">
+                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <input
+                    type="search"
+                    value={requestSearch}
+                    onChange={(event) => setRequestSearch(event.target.value)}
+                    placeholder="Search name or slip"
+                    aria-label="Search requests"
+                    className="input-base pl-9 sm:w-56"
+                  />
+                </div>
+                <div className="flex rounded-xl border border-line bg-mist p-1">
+                  {(
+                    [
+                      ['active', 'Active'],
+                      ['pending', 'Pending'],
+                      ['ready', 'Ready'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setRequestFilter(key)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
+                        requestFilter === key
+                          ? 'bg-white text-forest shadow-subtle'
+                          : 'text-muted hover:text-forest'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {filteredRequests.length === 0 ? (
+              <div className="p-5">
+                <EmptyState
+                  icon={<CheckCircleIcon className="h-5 w-5" />}
+                  title="Nothing waiting in this view"
+                  description={
+                    requests.length
+                      ? 'No requests match this filter. Try the active queue or clear the search.'
+                      : 'New document requests from residents will appear here as soon as they are submitted.'
+                  }
+                />
+              </div>
+            ) : (
+              <ul className="divide-y divide-line">
+                {filteredRequests.map((request) => (
+                  <li key={request.id} className="p-5">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-extrabold text-forest">
+                            {request.full_name}
+                          </p>
+                          <StatusBadge status={request.status} />
+                          <Badge tone="sky">{request.service_type}</Badge>
+                        </div>
+                        <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-muted">
+                          <span className="font-mono text-[0.6875rem] font-bold text-pine">
+                            {getRequestSlipNumber(request)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarIcon className="h-3.5 w-3.5" />
+                            {formatDate(request.created_at)}
+                          </span>
+                          {request.request_for && <span>For: {request.request_for}</span>}
+                        </div>
+                        {request.purpose && (
+                          <p className="mt-2 line-clamp-2 max-w-2xl text-sm font-medium text-forest/70">
+                            “{request.purpose}”
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 lg:shrink-0 lg:justify-end">
+                        {request.status === 'pending' && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateRequestStatus(request, 'ready')}
+                            disabled={busyRequestId === request.id}
+                          >
+                            <CheckCircleIcon className="h-4 w-4" />
+                            Mark ready
+                          </Button>
+                        )}
+                        {request.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateRequestStatus(request, 'received')}
+                            disabled={busyRequestId === request.id}
+                          >
+                            <CheckCircleIcon className="h-4 w-4" />
+                            Mark received
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          <FileTextIcon className="h-4 w-4" />
+                          Details
+                        </Button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+
+        {/* ------------------------------------------------------------ Residents */}
+        {activeTab === 'residents' && (
+          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-card">
+            <div className="border-b border-line p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h2 className="heading-2">Resident registry</h2>
+                  <p className="body-sm mt-1">
+                    Includes residents with and without a portal account.
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   <input
                     ref={residentImportRef}
@@ -765,715 +1327,944 @@ export default function AdminPage() {
                     onChange={importResidentRoster}
                     className="hidden"
                   />
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => residentImportRef.current?.click()}
-                    disabled={residentLoading}
-                    className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                    disabled={residentBusy}
                   >
+                    <UploadIcon className="h-4 w-4" />
                     Import CSV
-                  </button>
-                  <button
-                    type="button"
-                    onClick={openNewResidentForm}
-                    className="rounded-xl bg-green-700 px-4 py-2.5 text-xs font-black uppercase tracking-wide text-white hover:bg-green-800"
-                  >
-                    Add Resident
-                  </button>
+                  </Button>
+                  <Button size="sm" onClick={openNewResidentForm} disabled={residentBusy}>
+                    <PlusIcon className="h-4 w-4" />
+                    Add resident
+                  </Button>
                 </div>
               </div>
-              <p className="mt-2 text-xs text-slate-500">Roster import expects CSV columns: Name, Address, Age, Gender. Excel spreadsheets can be saved as CSV.</p>
 
-              <label className="mt-5 block">
-                <span className="sr-only">Search residents</span>
-                <input
-                  type="search"
-                  value={residentSearch}
-                  onChange={(event) => setResidentSearch(event.target.value)}
-                  placeholder="Search by name, address, age, or gender..."
-                  className="w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none focus:border-green-600"
-                />
-              </label>
+              <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+                {[
+                  ['Female', demographics.female],
+                  ['Male', demographics.male],
+                  ['Other / undisclosed', demographics.other],
+                  ['Age 0–17', demographics.under18],
+                  ['Age 18–59', demographics.adult],
+                  ['Age 60+', demographics.senior],
+                ].map(([label, count]) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-line bg-subtle px-3 py-2.5"
+                  >
+                    <p className="text-[0.625rem] font-bold uppercase tracking-wide text-muted">
+                      {label}
+                    </p>
+                    <p className="mt-0.5 font-display text-xl font-extrabold text-forest">
+                      {count}
+                    </p>
+                  </div>
+                ))}
+              </div>
 
-              {filteredResidents.length === 0 ? (
-                <div className="p-10 text-center text-sm font-semibold text-slate-400">
-                  {residents.length ? 'No residents match your search.' : 'No resident records yet. Add a resident or import a CSV roster.'}
+              <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative w-full sm:max-w-sm">
+                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+                  <input
+                    type="search"
+                    value={residentSearch}
+                    onChange={(event) => setResidentSearch(event.target.value)}
+                    placeholder="Search name, address, age, or gender"
+                    aria-label="Search residents"
+                    className="input-base pl-9"
+                  />
                 </div>
-              ) : (
-                <div className="mt-4 overflow-x-auto">
-                  <table className="w-full min-w-[780px] text-left">
-                    <thead className="border-b bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      <tr>
-                        <th className="p-4">Resident</th>
-                        <th className="p-4">Gender</th>
-                        <th className="p-4">Age group</th>
-                        <th className="p-4">Address</th>
-                        <th className="p-4">Account</th>
-                        <th className="p-4">Verification</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredResidents.map((resident) => (
-                        <tr key={resident.id} className="border-b last:border-0 hover:bg-slate-50">
-                          <td className="p-4 font-bold text-slate-800">{resident.full_name}</td>
-                          <td className="p-4 text-sm text-slate-600">{resident.gender || '—'}</td>
-                          <td className="p-4 text-sm text-slate-600">
-                            {resident.age === null ? '—' : resident.age < 18 ? '0–17' : resident.age < 60 ? '18–59' : '60+'}
-                          </td>
-                          <td className="p-4 text-sm text-slate-600">{resident.address}</td>
-                          <td className="p-4">
-                            <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${resident.profile_id ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-600'}`}>
-                              {resident.profile_id ? 'Has account' : 'No account'}
-                            </span>
-                          </td>
-                          <td className="p-4">
-                            <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase ${resident.is_verified ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
-                              {resident.is_verified ? 'Verified' : 'Pending'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => openEditResidentForm(resident)}
-                                className="rounded-lg border border-slate-200 px-3 py-2 text-[10px] font-black uppercase text-slate-600 hover:bg-slate-50"
-                              >
-                                Edit
-                              </button>
-                              {!resident.is_verified && (
-                                <button type="button" onClick={() => approveResident(resident)} className="rounded-lg bg-green-700 px-3 py-2 text-[10px] font-black uppercase text-white hover:bg-green-800">Verify</button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setResidentFeedback(null);
-                                  setResidentToDelete(resident);
-                                }}
-                                className="rounded-lg border border-rose-200 px-3 py-2 text-[10px] font-black uppercase text-rose-700 hover:bg-rose-50"
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                <p className="text-xs font-semibold text-muted">
+                  CSV columns: Name, Address, Age, Gender.
+                </p>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* TAB 2: SERVICE REQUESTS */}
-        {activeTab === 'requests' && (
-          <div className="bg-white border rounded-[32px] overflow-hidden shadow-xl border-slate-100">
-            {requests.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 font-bold text-sm">
-                No active service requests.
+            {filteredResidents.length === 0 ? (
+              <div className="p-5">
+                <EmptyState
+                  icon={<UsersIcon className="h-5 w-5" />}
+                  title={residents.length ? 'No residents match your search' : 'No residents yet'}
+                  description={
+                    residents.length
+                      ? 'Try a shorter search term, or clear the search field.'
+                      : 'Add a resident manually or import a CSV roster. Portal registrations appear here automatically.'
+                  }
+                  action={
+                    !residents.length ? (
+                      <Button size="sm" onClick={openNewResidentForm}>
+                        <PlusIcon className="h-4 w-4" />
+                        Add first resident
+                      </Button>
+                    ) : undefined
+                  }
+                />
               </div>
             ) : (
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase border-b tracking-widest">
-                  <tr><th className="p-6">Resident</th><th className="p-6">Service</th><th className="p-6">Status</th><th className="p-6 text-right">Actions</th></tr>
-                </thead>
-                <tbody>
-                  {requests.map((r) => (
-                    <tr key={r.id} className="border-b last:border-0 hover:bg-slate-50 transition-colors">
-                      <td className="p-6 font-bold text-slate-800">
-                        <div>{r.full_name}</div>
-                        <div className="mt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">
-                          {getRequestSlipNumber(r)}
-                        </div>
-                      </td>
-                      <td className="p-6">
-                        <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-[10px] font-black uppercase ring-1 ring-blue-100">{r.service_type}</span>
-                      </td>
-                      <td className="p-6">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${r.status === 'ready' ? 'bg-green-100 text-green-700' : r.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                          {r.status === 'rejected' ? 'Rejected' : r.status}
-                        </span>
-                      </td>
-                      <td className="p-6 text-right flex justify-end items-center gap-2">
-                        {r.status === 'ready' && (
-                          <button 
-                            onClick={() => markAsReceived(r.id)} 
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md transition-all active:scale-95"
-                          >
-                            Mark Received
-                          </button>
-                        )}
-                        <button onClick={() => openSlip(r)} className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-emerald-700 transition-all shadow-md active:scale-95">Slip</button>
-                        <button onClick={() => openRequestDetails(r)} className="bg-slate-900 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase hover:bg-blue-600 transition-all shadow-md active:scale-95">Details</button>
-                        {r.status !== 'rejected' && (
-                          <button
-                            type="button"
-                            onClick={() => openRejectDialog(r)}
-                            aria-label={`Reject request from ${r.full_name}`}
-                            title="Reject request"
-                            className="text-slate-300 hover:text-red-600 p-1"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                          </button>
-                        )}
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[860px] text-left">
+                  <thead className="border-b border-line bg-subtle text-[0.625rem] font-bold uppercase tracking-[0.12em] text-muted">
+                    <tr>
+                      <th className="px-5 py-3">Resident</th>
+                      <th className="px-5 py-3">Gender</th>
+                      <th className="px-5 py-3">Age group</th>
+                      <th className="px-5 py-3">Address</th>
+                      <th className="px-5 py-3">Account</th>
+                      <th className="px-5 py-3">Verification</th>
+                      <th className="px-5 py-3 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {filteredResidents.map((resident) => (
+                      <tr key={resident.id} className="transition hover:bg-subtle">
+                        <td className="px-5 py-3.5 text-sm font-bold text-forest">
+                          {resident.full_name}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-forest/70">
+                          {resident.gender || '—'}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-forest/70">
+                          {resident.age === null
+                            ? '—'
+                            : resident.age < 18
+                              ? '0–17'
+                              : resident.age < 60
+                                ? '18–59'
+                                : '60+'}
+                        </td>
+                        <td className="px-5 py-3.5 text-sm text-forest/70">
+                          {resident.address}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <Badge tone={resident.profile_id ? 'sky' : 'neutral'}>
+                            {resident.profile_id ? 'Has account' : 'No account'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <Badge tone={resident.is_verified ? 'green' : 'gold'}>
+                            {resident.is_verified ? 'Verified' : 'Pending'}
+                          </Badge>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex justify-end gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => openEditResidentForm(resident)}
+                              disabled={residentBusy}
+                            >
+                              <PencilIcon className="h-3.5 w-3.5" />
+                              Edit
+                            </Button>
+                            {!resident.is_verified && (
+                              <Button
+                                size="sm"
+                                onClick={() => approveResident(resident)}
+                                disabled={residentBusy}
+                              >
+                                <ShieldCheckIcon className="h-3.5 w-3.5" />
+                                Verify
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
+          </section>
         )}
 
-        {/* TAB 3: MONTHLY CALENDAR */}
+        {/* --------------------------------------------------------- Announcements */}
+        {activeTab === 'announcements' && (
+          <section className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.5fr]">
+            <form
+              onSubmit={saveAnnouncement}
+              className="h-fit rounded-[20px] border-2 border-line bg-white p-5 shadow-card lg:sticky lg:top-36"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="heading-2">
+                  {announcementForm.id ? 'Edit announcement' : 'New announcement'}
+                </h2>
+                {announcementForm.id && (
+                  <Button variant="ghost" size="sm" onClick={resetAnnouncementForm}>
+                    Cancel edit
+                  </Button>
+                )}
+              </div>
+              <p className="body-sm mt-1">
+                Published announcements appear on the public landing page immediately.
+              </p>
+
+              {!announcementsReady && (
+                <div className="mt-3 rounded-xl border border-[#f2dfb6] bg-pending-bg p-3 text-xs font-semibold leading-relaxed text-pending-ink">
+                  The announcements table is not available yet. Apply{' '}
+                  <code className="font-mono">
+                    20261105120000_security_hardening_and_announcements.sql
+                  </code>{' '}
+                  in Supabase, then refresh this page.
+                </div>
+              )}
+
+              <div className="mt-4 space-y-4">
+                <div>
+                  <label htmlFor="announcement-title" className="label-md block text-forest">
+                    Title <span className="text-rejected-ink">*</span>
+                  </label>
+                  <input
+                    id="announcement-title"
+                    type="text"
+                    required
+                    maxLength={160}
+                    value={announcementForm.title}
+                    onChange={(event) =>
+                      setAnnouncementForm((previous) => ({
+                        ...previous,
+                        title: event.target.value,
+                      }))
+                    }
+                    placeholder="e.g. Barangay assembly this Saturday"
+                    className="input-base mt-1.5"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="announcement-category"
+                    className="label-md block text-forest"
+                  >
+                    Category
+                  </label>
+                  <select
+                    id="announcement-category"
+                    value={announcementForm.category}
+                    onChange={(event) =>
+                      setAnnouncementForm((previous) => ({
+                        ...previous,
+                        category: event.target.value,
+                      }))
+                    }
+                    className="input-base mt-1.5"
+                  >
+                    {ANNOUNCEMENT_CATEGORIES.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="announcement-body" className="label-md block text-forest">
+                    Announcement text <span className="text-rejected-ink">*</span>
+                  </label>
+                  <textarea
+                    id="announcement-body"
+                    required
+                    rows={7}
+                    maxLength={4000}
+                    value={announcementForm.body}
+                    onChange={(event) =>
+                      setAnnouncementForm((previous) => ({
+                        ...previous,
+                        body: event.target.value,
+                      }))
+                    }
+                    placeholder="Write the details residents need to know."
+                    className="input-base mt-1.5 resize-y"
+                  />
+                  <p className="mt-1 text-right text-xs font-medium text-muted">
+                    {announcementForm.body.length}/4000
+                  </p>
+                </div>
+
+                <label className="flex items-start gap-2.5 rounded-xl border border-line bg-subtle p-3">
+                  <input
+                    type="checkbox"
+                    checked={announcementForm.published}
+                    onChange={(event) =>
+                      setAnnouncementForm((previous) => ({
+                        ...previous,
+                        published: event.target.checked,
+                      }))
+                    }
+                    className="mt-0.5 h-4 w-4 accent-[#267653]"
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-forest">Published</span>
+                    <span className="block text-xs font-medium text-muted">
+                      Uncheck to keep this as a draft without showing it publicly.
+                    </span>
+                  </span>
+                </label>
+
+                {announcementError && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-[#f1cccc] bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+                  >
+                    {announcementError}
+                  </p>
+                )}
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={announcementBusy || !announcementsReady}
+                >
+                  {announcementBusy
+                    ? 'Saving…'
+                    : announcementForm.id
+                      ? 'Save changes'
+                      : 'Publish announcement'}
+                </Button>
+              </div>
+            </form>
+
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 className="heading-2">All announcements</h2>
+                  <p className="body-sm mt-1">
+                    Newest first. Drafts are visible only in this workspace.
+                  </p>
+                </div>
+                <Badge tone="neutral">{announcements.length} total</Badge>
+              </div>
+
+              {announcements.length === 0 ? (
+                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card">
+                  <EmptyState
+                    icon={<BellIcon className="h-5 w-5" />}
+                    title="No announcements yet"
+                    description="Use the form to publish the first update to the community noticeboard."
+                  />
+                </div>
+              ) : (
+                announcements.map((announcement) => (
+                  <article
+                    key={announcement.id}
+                    className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={announcement.published ? 'green' : 'gold'}>
+                        {announcement.published ? 'Published' : 'Draft'}
+                      </Badge>
+                      <Badge tone="sky">{announcement.category}</Badge>
+                      <span className="ml-auto text-xs font-semibold text-muted">
+                        {formatDate(announcement.published_at)}
+                      </span>
+                    </div>
+
+                    <h3 className="heading-3 mt-2.5">{announcement.title}</h3>
+                    <p className="body-sm mt-1.5 whitespace-pre-wrap break-words">
+                      {announcement.body}
+                    </p>
+
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => editAnnouncement(announcement)}
+                      >
+                        <PencilIcon className="h-3.5 w-3.5" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="dangerSoft"
+                        onClick={() => setAnnouncementToDelete(announcement)}
+                        disabled={announcementBusy}
+                      >
+                        <TrashIcon className="h-3.5 w-3.5" />
+                        Delete
+                      </Button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* -------------------------------------------------------------- Calendar */}
         {activeTab === 'calendar' && (
-          <div className="bg-white border rounded-[32px] p-6 md:p-8 shadow-xl border-slate-100">
-            {/* Calendar Controls */}
-            <div className="flex justify-between items-center mb-6">
-              <button 
-                onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-xl font-black text-xs uppercase transition-colors"
-              >
-                &lt; Prev Month
-              </button>
-              <h2 className="text-2xl font-black text-blue-900 uppercase italic tracking-tight">
-                {currentDate.toLocaleString('default', { month: 'long' })} {year}
-              </h2>
-              <button 
-                onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
-                className="bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-xl font-black text-xs uppercase transition-colors"
-              >
-                Next Month &gt;
-              </button>
+          <section className="mt-5 rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="heading-2">Request calendar</h2>
+                <p className="body-sm mt-1">
+                  Every request is recorded by the date it was submitted.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentDate(new Date(year, month - 1, 1))}
+                  aria-label="Previous month"
+                >
+                  <ChevronLeftIcon className="h-4 w-4" />
+                </Button>
+                <p className="min-w-[150px] text-center font-display text-base font-extrabold text-forest">
+                  {currentDate.toLocaleString('en-PH', { month: 'long' })} {year}
+                </p>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setCurrentDate(new Date(year, month + 1, 1))}
+                  aria-label="Next month"
+                >
+                  <ChevronRightIcon className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
 
-            {/* Grid Days Header */}
-            <div className="grid grid-cols-7 gap-2 text-center font-black text-[10px] text-slate-400 uppercase tracking-widest mb-2">
-              <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+            <div className="mt-5 grid grid-cols-7 gap-1.5 text-center text-[0.625rem] font-bold uppercase tracking-[0.1em] text-muted sm:gap-2">
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                <div key={day} className="py-1">
+                  {day}
+                </div>
+              ))}
             </div>
 
-            {/* Grid Body */}
-            <div className="grid grid-cols-7 gap-2">
-              {[...Array(firstDayOfMonth)].map((_, i) => (
-                <div key={`empty-${i}`} className="h-24 bg-slate-50/50 rounded-2xl"></div>
+            <div className="mt-1 grid grid-cols-7 gap-1.5 sm:gap-2">
+              {Array.from({ length: firstDayOfMonth }).map((_, index) => (
+                <div
+                  key={`empty-${index}`}
+                  className="min-h-[64px] rounded-xl bg-subtle/60 sm:min-h-[86px]"
+                />
               ))}
 
-              {[...Array(daysInMonth)].map((_, i) => {
-                const dayNum = i + 1;
-                const dayReqs = getRequestsForDate(dayNum);
-                const hasRequests = dayReqs.length > 0;
+              {Array.from({ length: daysInMonth }).map((_, index) => {
+                const day = index + 1;
+                const dayRequests = getRequestsForDate(day);
+                const hasRequests = dayRequests.length > 0;
 
                 return (
-                  <div 
-                    key={`day-${dayNum}`}
-                    onClick={() => handleDayClick(dayNum)}
-                    className={`h-24 p-2 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${hasRequests ? 'bg-blue-50/80 border-blue-200 hover:bg-blue-100' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
+                  <button
+                    key={`day-${day}`}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDateLabel(
+                        new Date(year, month, day).toLocaleDateString('en-PH', {
+                          dateStyle: 'full',
+                        }),
+                      );
+                      setSelectedDateRequests(dayRequests);
+                    }}
+                    className={`flex min-h-[64px] flex-col justify-between rounded-xl border p-2 text-left transition sm:min-h-[86px] ${
+                      hasRequests
+                        ? 'border-[#c4e3d5] bg-mint/60 hover:bg-mint'
+                        : 'border-line bg-white hover:bg-subtle'
+                    }`}
+                    aria-label={`${day} ${currentDate.toLocaleString('en-PH', {
+                      month: 'long',
+                    })} — ${dayRequests.length} request(s)`}
                   >
-                    <span className="font-black text-slate-800 text-xs">{dayNum}</span>
+                    <span className="text-xs font-extrabold text-forest">{day}</span>
                     {hasRequests && (
-                      <div className="bg-blue-600 text-white text-[9px] font-black px-2 py-1 rounded-lg text-center shadow-sm">
-                        {dayReqs.length} {dayReqs.length === 1 ? 'Req' : 'Reqs'}
-                      </div>
+                      <span className="inline-flex w-fit items-center rounded-full bg-pine px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wide text-white">
+                        {dayRequests.length} req
+                      </span>
                     )}
-                  </div>
+                  </button>
                 );
               })}
             </div>
-          </div>
+
+            <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-muted">
+              <ClockIcon className="h-4 w-4 text-pine" />
+              Click a date to inspect the requests recorded that day.
+            </p>
+          </section>
         )}
+      </main>
+      </StageLayout>
 
-        {/* MODAL: REJECT REQUEST */}
-        {requestToReject && (
-          <div
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
-            onMouseDown={(event) => {
-              if (event.target === event.currentTarget) closeRejectDialog();
-            }}
-          >
-            <form
-              onSubmit={rejectRequest}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="reject-request-title"
-              className="w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-2xl"
-            >
-              <div className="flex items-center gap-4 bg-rose-700 px-6 py-5 text-white">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/15 text-2xl font-black" aria-hidden="true">
-                  !
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h2 id="reject-request-title" className="text-xl font-black uppercase tracking-tight">
-                    Reject Request
-                  </h2>
-                  <p className="mt-1 truncate text-sm font-medium text-rose-100">
-                    {requestToReject.full_name} · {requestToReject.service_type}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={closeRejectDialog}
-                  disabled={savingRejection}
-                  aria-label="Close rejection dialog"
-                  className="rounded-lg px-2 text-2xl text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-50"
-                >
-                  ×
-                </button>
-              </div>
+      {/* ------------------------------------------------------------- Modals */}
 
-              <div className="space-y-3 p-6">
-                <label htmlFor="rejection-reason" className="block text-sm font-bold text-slate-700">
-                  Reason for rejection
-                  <span className="ml-1 text-rose-600" aria-hidden="true">*</span>
-                </label>
-                <textarea
-                  id="rejection-reason"
-                  autoFocus
-                  required
-                  maxLength={1000}
-                  rows={5}
-                  value={rejectionReason}
-                  onChange={(event) => {
-                    setRejectionReason(event.target.value);
+      {/* Request details */}
+      <Modal
+        open={Boolean(selectedRequest)}
+        onClose={() => setSelectedRequest(null)}
+        title={selectedRequest ? `Request ${getRequestSlipNumber(selectedRequest)}` : 'Request'}
+        description={selectedRequest ? selectedRequest.service_type : undefined}
+        size="md"
+        footer={
+          selectedRequest ? (
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSlipRequest(selectedRequest);
+                  setSelectedRequest(null);
+                }}
+              >
+                <PrinterIcon className="h-4 w-4" />
+                View slip
+              </Button>
+              {selectedRequest.status === 'pending' && (
+                <Button
+                  variant="dangerSoft"
+                  onClick={() => {
+                    setRequestToReject(selectedRequest);
+                    setRejectionReason('');
                     setRejectionError('');
+                    setSelectedRequest(null);
                   }}
-                  placeholder="Explain what needs to be corrected or provided. This message will be visible to the resident."
-                  className="w-full resize-y rounded-xl border-2 border-slate-200 bg-white p-3 text-sm text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-rose-500"
-                />
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-xs leading-relaxed text-slate-500">
-                    The resident will see this explanation in their request history.
-                  </p>
-                  <span className="shrink-0 text-xs text-slate-400">{rejectionReason.length}/1000</span>
-                </div>
-                {rejectionError && (
-                  <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-700">
-                    {rejectionError}
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50 p-5 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeRejectDialog}
-                  disabled={savingRejection}
-                  className="rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-black uppercase tracking-widest text-slate-600 transition-colors hover:bg-slate-100 disabled:opacity-50"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingRejection || !rejectionReason.trim()}
-                  className="rounded-xl bg-rose-700 px-5 py-3 text-xs font-black uppercase tracking-widest text-white shadow-md transition-colors hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+                  Reject request
+                </Button>
+              )}
+              {selectedRequest.status === 'pending' && (
+                <Button
+                  onClick={() => updateRequestStatus(selectedRequest, 'ready')}
+                  disabled={busyRequestId === selectedRequest.id}
                 >
-                  {savingRejection ? 'Submitting...' : 'Submit Rejection'}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {/* MODAL: VIEW DETAILS */}
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Approve & mark ready
+                </Button>
+              )}
+              {selectedRequest.status === 'ready' && (
+                <Button
+                  onClick={() => updateRequestStatus(selectedRequest, 'received')}
+                  disabled={busyRequestId === selectedRequest.id}
+                >
+                  <CheckCircleIcon className="h-4 w-4" />
+                  Mark received
+                </Button>
+              )}
+            </>
+          ) : undefined
+        }
+      >
         {selectedRequest && (
-          <div className="fixed inset-0 bg-blue-950/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
-              
-              <div className="bg-blue-900 p-6 md:p-8 text-white flex justify-between items-center shrink-0">
-                <div>
-                  <h3 className="font-black uppercase tracking-tighter text-2xl">Processing Details</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mt-1">
-                    {getRequestSlipNumber(selectedRequest)}
-                  </p>
-                </div>
-                <button onClick={() => setSelectedRequest(null)} className="text-white/50 hover:text-white text-2xl">×</button>
-              </div>
-              
-              <div className="p-8 md:p-10 space-y-6 overflow-y-auto flex-1">
-                <div className="flex justify-between items-end border-b pb-4 border-slate-100">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Full Name</label>
-                    <p className="text-2xl font-black text-slate-800 leading-tight">{selectedRequest.full_name}</p>
-                  </div>
-                  <div className="text-right">
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Age</label>
-                    <p className="text-2xl font-black font-display text-blue-600">
-                      {selectedRequest.age || '—'}<span className="text-[10px] ml-1 uppercase">Yrs</span>
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-b pb-4 border-slate-100">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Sex</label>
-                    <p className="font-bold text-slate-700 uppercase text-xs">{selectedRequest.sex || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Civil Status</label>
-                    <p className="font-bold text-slate-700 uppercase text-xs">{selectedRequest.civil_status || 'N/A'}</p>
-                  </div>
-                </div>
-
-                <div className="border-b pb-4 border-slate-100">
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Address</label>
-                  <p className="font-bold text-slate-700 uppercase text-xs">{selectedRequest.address || 'N/A'}</p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 border-b pb-4 border-slate-100">
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Document</label>
-                    <p className="font-black text-slate-700 uppercase text-xs">{selectedRequest.service_type}</p>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Requested Date</label>
-                    <p className="font-black text-slate-700 uppercase text-xs">{new Date(selectedRequest.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-
-                {selectedRequest.request_for && (
-                  <div className="border-b pb-4 border-slate-100">
-                    <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-1">Requesting For</label>
-                    <p className="font-bold text-slate-700 uppercase text-xs">{selectedRequest.request_for}</p>
-                  </div>
-                )}
-
-                <div className="bg-blue-50 p-6 rounded-[30px] border border-blue-100">
-                  <label className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 block text-center">
-                    Purpose
-                  </label>
-                  <p className="text-blue-900 leading-relaxed font-bold text-center text-sm italic uppercase tracking-tighter break-words">
-                    &quot;{selectedRequest.purpose || "No details provided"}&quot;
-                  </p>
-                </div>
-
-                {selectedRequest.status === 'rejected' && selectedRequest.rejection_reason && (
-                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
-                    <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-rose-600">
-                      Rejection feedback sent to resident
-                    </label>
-                    <p className="break-words text-sm font-medium leading-relaxed text-rose-900">
-                      {selectedRequest.rejection_reason}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="p-6 bg-slate-50 border-t border-slate-100 shrink-0 space-y-3">
-                {selectedRequest.status === 'pending' && (
-                  <>
-                    <button
-                      onClick={() => updateRequestStatus(selectedRequest.id, 'ready')}
-                      className="w-full bg-blue-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-blue-700 shadow-xl active:scale-95 transition-all"
-                    >
-                      Approve & Mark Ready
-                    </button>
-                  </>
-                )}
-                {selectedRequest.status === 'ready' && (
-                  <button 
-                    onClick={() => markAsReceived(selectedRequest.id)}
-                    className="w-full bg-emerald-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-emerald-700 shadow-xl active:scale-95 transition-all"
-                  >
-                    Mark Received & Archive Record
-                  </button>
-                )}
-                <button 
-                  onClick={() => openSlip(selectedRequest)}
-                  className="w-full bg-indigo-600 text-white py-4 md:py-5 rounded-[24px] font-black uppercase text-xs tracking-widest hover:bg-indigo-700 shadow-xl active:scale-95 transition-all"
-                >
-                  View / Print Request Slip
-                </button>
-                <button 
-                  onClick={() => setSelectedRequest(null)} 
-                  className="w-full bg-white border border-slate-200 text-slate-400 py-3 md:py-4 rounded-[24px] font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge status={selectedRequest.status} />
+              <Badge tone="sky">{selectedRequest.service_type}</Badge>
             </div>
-          </div>
-        )}
 
-        {/* MODAL: CALENDAR DATE INSPECTOR */}
-        {selectedDateRequests && (
-          <div className="fixed inset-0 bg-blue-950/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-[40px] shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in duration-300">
-              <div className="bg-blue-900 p-6 text-white flex justify-between items-center shrink-0">
-                <div>
-                  <h3 className="font-black uppercase tracking-tighter text-xl">Date Records</h3>
-                  <p className="text-xs text-blue-200 font-bold">{selectedDateLabel}</p>
-                </div>
-                <button onClick={() => setSelectedDateRequests(null)} className="text-white/50 hover:text-white text-2xl">×</button>
-              </div>
-
-              <div className="p-6 overflow-y-auto flex-1 space-y-4">
-                {selectedDateRequests.length === 0 ? (
-                  <p className="text-center text-slate-400 font-bold py-8 text-xs">No document requests recorded on this date.</p>
-                ) : (
-                  selectedDateRequests.map((req) => (
-                    <div key={req.id} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0">
-                        <p className="font-black text-slate-800 text-sm truncate">{req.full_name}</p>
-                        <p className="text-[10px] text-slate-500 uppercase font-bold">{req.service_type}</p>
-                        <p className="text-[9px] text-emerald-700 font-black uppercase tracking-wider mt-1">{getRequestSlipNumber(req)}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${req.status === 'received' ? 'bg-slate-200 text-slate-700' : req.status === 'rejected' ? 'bg-rose-100 text-rose-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {req.status === 'rejected' ? 'Rejected' : req.status}
-                        </span>
-                        {req.status === 'rejected' && req.rejection_reason && (
-                          <p className="basis-full rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs leading-relaxed text-rose-900 sm:basis-auto sm:max-w-xs">
-                            <span className="font-black uppercase tracking-wide">Reason: </span>
-                            {req.rejection_reason}
-                          </p>
-                        )}
-                        <button onClick={() => openSlip(req)} className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-md transition-all active:scale-95">
-                          View / Print
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              <div className="p-4 bg-slate-50 border-t border-slate-100 shrink-0">
-                <button 
-                  onClick={() => setSelectedDateRequests(null)}
-                  className="w-full bg-white border border-slate-200 text-slate-600 py-3 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
+            <dl className="grid grid-cols-2 gap-3">
+              {[
+                ['Resident', selectedRequest.full_name],
+                ['Age', selectedRequest.age ?? '—'],
+                ['Sex', selectedRequest.sex || '—'],
+                ['Civil status', selectedRequest.civil_status || '—'],
+                ['Birth date', selectedRequest.birthday || '—'],
+                ['Birth place', selectedRequest.birth_place || '—'],
+                ['Address', selectedRequest.address || '—'],
+                ['Contact', selectedRequest.cp_no || '—'],
+                ['Height', selectedRequest.height || '—'],
+                ['Weight', selectedRequest.weight || '—'],
+                ['Requested for', selectedRequest.request_for || 'Self'],
+                ['Submitted', formatDate(selectedRequest.created_at)],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  className="rounded-xl border border-line bg-subtle px-3 py-2.5"
                 >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL: REQUEST SLIP */}
-        {slipRequest && (
-          <div className="fixed inset-0 bg-blue-950/50 backdrop-blur-sm flex items-start justify-center z-[60] p-4 overflow-y-auto">
-            <div className="w-full max-w-2xl my-6 bg-white rounded-3xl shadow-2xl overflow-hidden">
-              <div className="bg-blue-900 p-5 md:p-6 text-white flex justify-between items-center">
-                <div>
-                  <h3 className="font-black uppercase tracking-tighter text-xl">Request Slip</h3>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-blue-200 mt-1">
-                    {getRequestSlipNumber(slipRequest)}
-                  </p>
+                  <dt className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-muted">
+                    {label}
+                  </dt>
+                  <dd className="mt-0.5 break-words text-sm font-semibold text-forest">
+                    {value}
+                  </dd>
                 </div>
-                <button onClick={() => setSlipRequest(null)} className="text-white/60 hover:text-white text-2xl">×</button>
-              </div>
+              ))}
+            </dl>
 
-              <div className="p-4 md:p-6 bg-slate-100">
-                <div className="shadow-xl">
-                  <div ref={slipRef} className="bg-white">
-                    <RequestSlip request={slipRequest} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 md:p-6 bg-white border-t border-slate-100 flex flex-col sm:flex-row gap-3">
-                <button
-                  onClick={printSlip}
-                  className="flex-1 bg-blue-700 hover:bg-blue-800 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all active:scale-95"
-                >
-                  Print Slip
-                </button>
-                <button
-                  onClick={downloadSlip}
-                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest shadow-lg transition-all active:scale-95"
-                >
-                  Download PNG
-                </button>
-                <button
-                  onClick={() => setSlipRequest(null)}
-                  className="sm:flex-none sm:px-6 bg-white border border-slate-200 text-slate-500 py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Print-only copy. globals.css hides everything else while printing. */}
-        {slipRequest && (
-          <div className="print-slip-area">
-            <RequestSlip request={slipRequest} />
-          </div>
-        )}
-
-        {showResidentForm && (
-          <div
-            className="fixed inset-0 z-[70] flex items-center justify-center overflow-y-auto bg-slate-950/60 p-4 backdrop-blur-sm"
-            onClick={(event) => {
-              if (event.target === event.currentTarget && !residentLoading) setShowResidentForm(false);
-            }}
-          >
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="resident-form-title"
-              className="my-auto w-full max-w-xl overflow-hidden rounded-3xl bg-white shadow-2xl"
-            >
-              <div className="flex items-center justify-between bg-green-800 px-6 py-5 text-white">
-                <div>
-                  <h2 id="resident-form-title" className="text-xl font-black">
-                    {editingResident ? 'Edit Resident' : 'Add Resident'}
-                  </h2>
-                  <p className="mt-1 text-xs font-semibold text-green-100">
-                    {editingResident?.profile_id
-                      ? 'Changes will also update the linked resident account.'
-                      : 'Update the resident registry details.'}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  aria-label="Close resident form"
-                  disabled={residentLoading}
-                  onClick={() => setShowResidentForm(false)}
-                  className="rounded-full px-3 py-1 text-2xl leading-none text-white/80 hover:bg-white/10 hover:text-white disabled:opacity-50"
-                >
-                  ×
-                </button>
-              </div>
-
-              <form onSubmit={saveResident} className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
-                <label className="text-xs font-bold text-slate-600 sm:col-span-2">
-                  Full name
-                  <input
-                    required
-                    value={residentForm.full_name}
-                    onChange={(event) => setResidentForm({ ...residentForm, full_name: event.target.value })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                  />
-                </label>
-                <label className="text-xs font-bold text-slate-600 sm:col-span-2">
-                  Address
-                  <input
-                    required
-                    value={residentForm.address}
-                    onChange={(event) => setResidentForm({ ...residentForm, address: event.target.value })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                  />
-                </label>
-                <label className="text-xs font-bold text-slate-600">
-                  Age
-                  <input
-                    type="number"
-                    min="0"
-                    max="120"
-                    value={residentForm.age}
-                    onChange={(event) => setResidentForm({ ...residentForm, age: event.target.value })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                  />
-                </label>
-                <label className="text-xs font-bold text-slate-600">
-                  Gender
-                  <select
-                    value={residentForm.gender}
-                    onChange={(event) => setResidentForm({ ...residentForm, gender: event.target.value })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm"
-                  >
-                    <option value="">Not provided</option>
-                    <option value="Female">Female</option>
-                    <option value="Male">Male</option>
-                    <option value="Other">Other</option>
-                    <option value="Prefer not to say">Prefer not to say</option>
-                  </select>
-                </label>
-                {residentFeedback?.type === 'error' && (
-                  <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800 sm:col-span-2">
-                    {residentFeedback.message}
-                  </p>
-                )}
-                <div className="flex justify-end gap-2 sm:col-span-2">
-                  <button
-                    type="button"
-                    disabled={residentLoading}
-                    onClick={() => setShowResidentForm(false)}
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black uppercase text-slate-600 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={residentLoading}
-                    className="rounded-xl bg-green-700 px-5 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50"
-                  >
-                    {residentLoading ? 'Saving...' : editingResident ? 'Save Changes' : 'Add Resident'}
-                  </button>
-                </div>
-              </form>
-            </section>
-          </div>
-        )}
-
-        {residentToDelete && (
-          <div
-            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
-            onClick={(event) => {
-              if (event.target === event.currentTarget && !residentLoading) setResidentToDelete(null);
-            }}
-          >
-            <section
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="delete-resident-title"
-              className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
-            >
-              <div className="bg-rose-700 px-6 py-5 text-white">
-                <h2 id="delete-resident-title" className="text-xl font-black">Delete Resident Record?</h2>
-              </div>
-              <div className="space-y-4 p-6">
-                <p className="text-sm leading-relaxed text-slate-600">
-                  Remove <strong className="text-slate-900">{residentToDelete.full_name}</strong> from the resident registry? This deletes the registry record only; it does not delete their portal login account.
+            {selectedRequest.business && (
+              <div className="rounded-xl border border-line bg-subtle px-3 py-2.5">
+                <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-muted">
+                  Business · Capital
                 </p>
-                {residentFeedback?.type === 'error' && (
-                  <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm font-semibold text-rose-800">
-                    {residentFeedback.message}
-                  </p>
-                )}
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    disabled={residentLoading}
-                    onClick={() => setResidentToDelete(null)}
-                    className="rounded-xl border border-slate-200 px-4 py-2.5 text-xs font-black uppercase text-slate-600 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    disabled={residentLoading}
-                    onClick={deleteResident}
-                    className="rounded-xl bg-rose-700 px-5 py-2.5 text-xs font-black uppercase text-white disabled:opacity-50"
-                  >
-                    {residentLoading ? 'Deleting...' : 'Delete Record'}
-                  </button>
-                </div>
+                <p className="mt-0.5 text-sm font-semibold text-forest">
+                  {selectedRequest.business} · {selectedRequest.capital || '—'}
+                </p>
               </div>
-            </section>
+            )}
+
+            <div className="rounded-xl border border-[#cfe7f1] bg-sky px-3.5 py-3">
+              <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-[#3a6478]">
+                Purpose
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-[#22414f]">
+                {selectedRequest.purpose || 'No purpose provided.'}
+              </p>
+            </div>
+
+            {selectedRequest.status === 'rejected' && selectedRequest.rejection_reason && (
+              <div className="rounded-xl border border-[#f1cccc] bg-rejected-bg px-3.5 py-3">
+                <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-rejected-ink">
+                  Rejection feedback sent to resident
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-[#7c3535]">
+                  {selectedRequest.rejection_reason}
+                </p>
+              </div>
+            )}
           </div>
         )}
+      </Modal>
 
-        {residentNotice && (
-          <FeedbackModal
-            title={residentNotice.type === 'success' ? 'Success' : 'Something Went Wrong'}
-            message={residentNotice.message}
-            type={residentNotice.type}
-            onClose={() => setResidentNotice(null)}
-          />
+      {/* Reject request */}
+      {requestToReject && (
+        <Modal
+          open
+          onClose={() => {
+            if (!savingRejection) {
+              setRequestToReject(null);
+              setRejectionReason('');
+              setRejectionError('');
+            }
+          }}
+          title="Reject request"
+          description={`${requestToReject.full_name} · ${requestToReject.service_type}`}
+          tone="danger"
+          size="md"
+          busy={savingRejection}
+          footer={
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => setRequestToReject(null)}
+                disabled={savingRejection}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                type="submit"
+                form="reject-request-form"
+                disabled={savingRejection || !rejectionReason.trim()}
+              >
+                {savingRejection ? 'Submitting…' : 'Submit rejection'}
+              </Button>
+            </>
+          }
+        >
+          <form id="reject-request-form" onSubmit={rejectRequest} className="space-y-3">
+            <label htmlFor="rejection-reason" className="label-md block text-forest">
+              Reason for rejection <span className="text-rejected-ink">*</span>
+            </label>
+            <textarea
+              id="rejection-reason"
+              autoFocus
+              required
+              maxLength={1000}
+              rows={5}
+              value={rejectionReason}
+              onChange={(event) => {
+                setRejectionReason(event.target.value);
+                setRejectionError('');
+              }}
+              placeholder="Explain what needs to be corrected or provided. This message is shown to the resident."
+              className="input-base resize-y"
+            />
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-xs font-medium leading-relaxed text-muted">
+                The resident sees this in their request history.
+              </p>
+              <span className="shrink-0 text-xs text-muted">{rejectionReason.length}/1000</span>
+            </div>
+            {rejectionError && (
+              <p
+                role="alert"
+                className="rounded-xl border border-[#f1cccc] bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+              >
+                {rejectionError}
+              </p>
+            )}
+          </form>
+        </Modal>
+      )}
+
+      {/* Request slip */}
+      <Modal
+        open={Boolean(slipRequest)}
+        onClose={() => setSlipRequest(null)}
+        title="Request slip"
+        description={slipRequest ? getRequestSlipNumber(slipRequest) : undefined}
+        size="lg"
+        footer={
+          <>
+            <Button variant="secondary" onClick={downloadSlip}>
+              <DownloadIcon className="h-4 w-4" />
+              Download PNG
+            </Button>
+            <Button onClick={printSlip}>
+              <PrinterIcon className="h-4 w-4" />
+              Print slip
+            </Button>
+          </>
+        }
+      >
+        {slipRequest && (
+          <div className="rounded-xl border border-line bg-subtle p-3">
+            <div ref={slipRef} className="bg-white">
+              <RequestSlip request={slipRequest} />
+            </div>
+          </div>
         )}
+      </Modal>
 
-        {adminNotice && (
-          <FeedbackModal
-            title={adminNotice.title}
-            message={adminNotice.message}
-            type="error"
-            onClose={() => setAdminNotice(null)}
+      {/* Print-only slip copy */}
+      {slipRequest && (
+        <div className="print-slip-area">
+          <RequestSlip request={slipRequest} />
+        </div>
+      )}
+
+      {/* Calendar day */}
+      <Modal
+        open={Boolean(selectedDateRequests)}
+        onClose={() => setSelectedDateRequests(null)}
+        title="Requests on this date"
+        description={selectedDateLabel}
+        size="md"
+      >
+        {selectedDateRequests && selectedDateRequests.length === 0 ? (
+          <EmptyState
+            icon={<CalendarIcon className="h-5 w-5" />}
+            title="No requests on this date"
+            description="No document requests were submitted on this day."
           />
+        ) : (
+          <ul className="space-y-2.5">
+            {selectedDateRequests?.map((request) => (
+              <li
+                key={request.id}
+                className="flex flex-col gap-2 rounded-xl border border-line bg-subtle p-3.5 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-extrabold text-forest">{request.full_name}</p>
+                  <p className="text-xs font-semibold text-muted">
+                    {request.service_type} · {getRequestSlipNumber(request)}
+                  </p>
+                  <div className="mt-1">
+                    <StatusBadge status={request.status} />
+                  </div>
+                  {request.status === 'rejected' && request.rejection_reason && (
+                    <p className="mt-2 rounded-lg border border-[#f1cccc] bg-rejected-bg p-2 text-xs font-medium leading-relaxed text-rejected-ink">
+                      {request.rejection_reason}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => {
+                    setSlipRequest(request);
+                    setSelectedDateRequests(null);
+                  }}
+                >
+                  <FileTextIcon className="h-4 w-4" />
+                  View slip
+                </Button>
+              </li>
+            ))}
+          </ul>
         )}
+      </Modal>
 
-      </div>
+      {/* Resident add/edit */}
+      <Modal
+        open={showResidentForm}
+        onClose={() => {
+          if (!residentBusy) setShowResidentForm(false);
+        }}
+        title={editingResident ? 'Edit resident' : 'Add resident'}
+        description={
+          editingResident?.profile_id
+            ? 'Changes also update the linked resident account.'
+            : 'Update the resident registry details.'
+        }
+        size="md"
+        busy={residentBusy}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setShowResidentForm(false)}
+              disabled={residentBusy}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="resident-form"
+              disabled={residentBusy}
+            >
+              {residentBusy ? 'Saving…' : editingResident ? 'Save changes' : 'Add resident'}
+            </Button>
+          </>
+        }
+      >
+        <form id="resident-form" onSubmit={saveResident} className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <label htmlFor="resident-name" className="label-md block text-forest">
+              Full name <span className="text-rejected-ink">*</span>
+            </label>
+            <input
+              id="resident-name"
+              required
+              value={residentForm.full_name}
+              onChange={(event) =>
+                setResidentForm({ ...residentForm, full_name: event.target.value })
+              }
+              className="input-base mt-1.5"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label htmlFor="resident-address" className="label-md block text-forest">
+              Address <span className="text-rejected-ink">*</span>
+            </label>
+            <input
+              id="resident-address"
+              required
+              value={residentForm.address}
+              onChange={(event) =>
+                setResidentForm({ ...residentForm, address: event.target.value })
+              }
+              className="input-base mt-1.5"
+            />
+          </div>
+          <div>
+            <label htmlFor="resident-age" className="label-md block text-forest">
+              Age
+            </label>
+            <input
+              id="resident-age"
+              type="number"
+              min={0}
+              max={120}
+              value={residentForm.age}
+              onChange={(event) =>
+                setResidentForm({ ...residentForm, age: event.target.value })
+              }
+              className="input-base mt-1.5"
+            />
+          </div>
+          <div>
+            <label htmlFor="resident-gender" className="label-md block text-forest">
+              Gender
+            </label>
+            <select
+              id="resident-gender"
+              value={residentForm.gender}
+              onChange={(event) =>
+                setResidentForm({ ...residentForm, gender: event.target.value })
+              }
+              className="input-base mt-1.5"
+            >
+              <option value="">Not provided</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+          {editingResident && (
+            <div className="flex flex-col gap-2 rounded-xl border border-[#f1cccc] bg-rejected-bg/60 p-3.5 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-semibold leading-relaxed text-rejected-ink">
+                Removing a record does not delete the resident&apos;s portal login.
+              </p>
+              <Button
+                size="sm"
+                variant="dangerSoft"
+                disabled={residentBusy}
+                onClick={() => {
+                  setShowResidentForm(false);
+                  setResidentToDelete(editingResident);
+                }}
+              >
+                <TrashIcon className="h-3.5 w-3.5" />
+                Delete record
+              </Button>
+            </div>
+          )}
+        </form>
+      </Modal>
+
+      {/* Resident delete */}
+      <Modal
+        open={Boolean(residentToDelete)}
+        onClose={() => {
+          if (!residentBusy) setResidentToDelete(null);
+        }}
+        title="Delete resident record?"
+        tone="danger"
+        size="sm"
+        busy={residentBusy}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setResidentToDelete(null)}
+              disabled={residentBusy}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={deleteResident} disabled={residentBusy}>
+              {residentBusy ? 'Deleting…' : 'Delete record'}
+            </Button>
+          </>
+        }
+      >
+        <p className="body-md">
+          Remove <strong className="text-forest">{residentToDelete?.full_name}</strong> from
+          the resident registry? This deletes the registry record only; it does not delete
+          their portal login account.
+        </p>
+      </Modal>
+
+      {/* Announcement delete */}
+      <Modal
+        open={Boolean(announcementToDelete)}
+        onClose={() => {
+          if (!announcementBusy) setAnnouncementToDelete(null);
+        }}
+        title="Delete announcement?"
+        tone="danger"
+        size="sm"
+        busy={announcementBusy}
+        footer={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setAnnouncementToDelete(null)}
+              disabled={announcementBusy}
+            >
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={deleteAnnouncement} disabled={announcementBusy}>
+              {announcementBusy ? 'Deleting…' : 'Delete announcement'}
+            </Button>
+          </>
+        }
+      >
+        <p className="body-md">
+          Delete <strong className="text-forest">{announcementToDelete?.title}</strong>? It
+          will disappear from the public landing page immediately.
+        </p>
+      </Modal>
+
+      {notice && (
+        <FeedbackModal
+          title={notice.title}
+          message={notice.message}
+          type="error"
+          onClose={() => setNotice(null)}
+        />
+      )}
     </div>
   );
 }

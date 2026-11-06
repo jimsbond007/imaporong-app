@@ -1,78 +1,147 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getRequestSlipNumber } from '../../../components/RequestSlip';
+
+import { supabase } from '@/lib/supabase';
+import { getRequestSlipNumber } from '@/components/RequestSlip';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { PortalHeader } from '@/components/portal/PortalHeader';
+import { StageLayout } from '@/components/portal/StageLayout';
+import { PixelIcon } from '@/components/portal/PixelIcon';
+import { Button, ButtonLink, buttonClasses } from '@/components/ui/Button';
+import { ServiceIcon } from '@/components/ui/ServiceIcon';
+import {
+  AlertIcon,
+  ArrowRightIcon,
+  CheckCircleIcon,
+  ClipboardIcon,
+  InfoIcon,
+  LockIcon,
+  PrinterIcon,
+} from '@/components/ui/icons';
+import { SERVICES } from '@/lib/constants';
+
+interface ProfileInfo {
+  full_name: string | null;
+  address: string | null;
+  role: string | null;
+  is_verified: boolean | null;
+}
+
+const INITIAL_FORM = {
+  full_name: '',
+  sex: 'Male',
+  civil_status: 'Single',
+  birthday: '',
+  age: '',
+  address: '',
+  height: '',
+  weight: '',
+  business: '',
+  capital: '',
+  cp_no: '',
+  birth_place: '',
+  purpose: '',
+  service_type: SERVICES[0].name,
+  request_for: '',
+};
+
+function calculateAge(birthDateString: string): string {
+  if (!birthDateString) return '';
+  const birthDate = new Date(birthDateString);
+  if (Number.isNaN(birthDate.getTime())) return '';
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const month = today.getMonth() - birthDate.getMonth();
+  if (month < 0 || (month === 0 && today.getDate() < birthDate.getDate())) {
+    age -= 1;
+  }
+  return age > 0 ? age.toString() : '';
+}
+
+function Field({
+  label,
+  htmlFor,
+  hint,
+  required,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  hint?: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label htmlFor={htmlFor} className="label-md block text-forest">
+        {label}
+        {required && (
+          <span className="ml-1 text-rejected-ink" aria-hidden="true">
+            *
+          </span>
+        )}
+      </label>
+      {hint && <p className="mt-0.5 text-xs font-medium text-muted">{hint}</p>}
+      <div className="mt-1.5">{children}</div>
+    </div>
+  );
+}
 
 export default function RequestForm() {
   const router = useRouter();
   const [profileLoading, setProfileLoading] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
+  const [profile, setProfile] = useState<ProfileInfo | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
   const [submittedSlip, setSubmittedSlip] = useState<string | null>(null);
-
-  const [formData, setFormData] = useState({
-    full_name: '',
-    sex: 'Male',
-    civil_status: 'Single',
-    birthday: '',
-    age: '',
-    address: '',
-    height: '',
-    weight: '',
-    business: '',
-    capital: '',
-    cp_no: '',
-    birth_place: '',
-    purpose: '',
-    service_type: 'Barangay Clearance',
-    request_for: ''
-  });
-
-  const calculateAge = (birthDateString: string): string => {
-    if (!birthDateString) return '';
-    const today = new Date();
-    const birthDate = new Date(`${birthDateString}T00:00:00`);
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
-    }
-    return age > 0 ? age.toString() : '';
-  };
+  const [copied, setCopied] = useState(false);
+  const [formData, setFormData] = useState(INITIAL_FORM);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        router.push('/auth');
+        router.replace('/auth');
         return;
       }
 
-      const { data: profile, error } = await supabase
+      const { data: record, error } = await supabase
         .from('profiles')
-        .select('full_name, address, role')
+        .select('full_name, address, role, is_verified')
         .eq('id', user.id)
         .single();
 
-      if (error || !profile) {
-        console.error('Could not verify the signed-in user role:', error);
-        await supabase.auth.signOut();
+      if (error || !record) {
+        console.error('Could not load the signed-in profile:', error);
         router.replace('/auth');
         return;
       }
 
-      if (profile.role !== 'resident' && profile.role !== 'admin') {
-        await supabase.auth.signOut();
+      if (record.role !== 'resident' && record.role !== 'admin') {
         router.replace('/auth');
         return;
       }
 
-      setFormData((prev) => ({
-        ...prev,
-        full_name: profile.full_name || '',
-        address: profile.address || '',
+      setProfile(record);
+
+      const requestedService = new URLSearchParams(window.location.search).get('service');
+      const matchedService = SERVICES.find(
+        (service) =>
+          service.name.toLowerCase() === requestedService?.trim().toLowerCase() ||
+          service.slug === requestedService?.trim().toLowerCase(),
+      );
+
+      setFormData((previous) => ({
+        ...previous,
+        full_name: record.full_name || '',
+        address: record.address || '',
+        service_type: matchedService?.name ?? previous.service_type,
       }));
       setProfileLoading(false);
     };
@@ -80,39 +149,58 @@ export default function RequestForm() {
     fetchProfile();
   }, [router]);
 
-  const handleBirthdayChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newBirthday = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      birthday: newBirthday,
-      age: calculateAge(newBirthday)
+  const update = <K extends keyof typeof INITIAL_FORM>(
+    key: K,
+    value: (typeof INITIAL_FORM)[K],
+  ) => setFormData((previous) => ({ ...previous, [key]: value }));
+
+  const handleBirthdayChange = (value: string) => {
+    setFormData((previous) => ({
+      ...previous,
+      birthday: value,
+      age: calculateAge(value),
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setFeedback(null);
 
+    if (!formData.birthday) {
+      setFeedback('Please enter your birth date so the request slip can show your age.');
+      return;
+    }
+
+    if (!formData.purpose.trim()) {
+      setFeedback('Please describe the purpose of your request.');
+      return;
+    }
+
+    setLoading(true);
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
       if (!user) {
-        router.push('/auth');
+        router.replace('/auth');
         return;
       }
 
-      const { data: profile, error: profileError } = await supabase
+      const { data: currentProfile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
-      if (profileError || !profile) {
+
+      if (profileError || !currentProfile) {
         console.error('Could not verify request submitter role:', profileError);
-        await supabase.auth.signOut();
         router.replace('/auth');
         return;
       }
-      if (profile.role !== 'resident' && profile.role !== 'admin') {
+
+      if (currentProfile.role !== 'resident' && currentProfile.role !== 'admin') {
         router.replace('/auth');
         return;
       }
@@ -125,7 +213,7 @@ export default function RequestForm() {
             sex: formData.sex,
             civil_status: formData.civil_status,
             birthday: formData.birthday,
-            age: parseInt(formData.age, 10) || null,
+            age: Number.parseInt(formData.age, 10) || null,
             address: formData.address.trim(),
             height: formData.height.trim() || null,
             weight: formData.weight.trim() || null,
@@ -137,34 +225,34 @@ export default function RequestForm() {
             service_type: formData.service_type,
             request_for: formData.request_for.trim() || null,
             resident_id: user.id,
-            status: 'pending'
-          }
+            status: 'pending',
+          },
         ])
         .select('id, slip_number, created_at');
 
       if (error) {
         console.error('Failed to submit service request:', error);
-        const missingSetup = ['42703', '42883', 'PGRST202', 'PGRST204', 'PGRST205'].includes(error.code)
-          || /does not exist|could not find/i.test(error.message);
-        setFeedback({
-          type: 'error',
-          message: missingSetup
-            ? 'The request database is missing required fields or slip-number setup. Ask the administrator to apply all SQL files in supabase/migrations in order, then reload this page.'
+        const missingSetup =
+          ['42703', '42883', 'PGRST202', 'PGRST204', 'PGRST205'].includes(error.code) ||
+          /does not exist|could not find/i.test(error.message);
+
+        setFeedback(
+          missingSetup
+            ? 'The request database is missing required fields or slip-number setup. Ask the barangay administrator to apply all SQL files in supabase/migrations in order, then reload this page.'
             : error.message,
-        });
+        );
         return;
       }
 
       const inserted = insertedRows?.[0];
-
-      // The database trigger normally generates this. Keep a safe fallback
-      // for databases that have the column but not the trigger yet.
       const slipNumber = getRequestSlipNumber({
         id: inserted?.id,
         slip_number: inserted?.slip_number,
         created_at: inserted?.created_at,
       });
 
+      // The database trigger normally creates this. The fallback is allowed by
+      // the resident update policy and only stores the generated slip number.
       if (inserted?.id && inserted.slip_number !== slipNumber) {
         const { error: updateError } = await supabase
           .from('service_requests')
@@ -177,273 +265,486 @@ export default function RequestForm() {
       }
 
       setSubmittedSlip(slipNumber);
-    } catch (err) {
-      console.error(err);
-      setFeedback({ type: 'error', message: 'An unexpected error occurred. Please try again.' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      console.error(error);
+      setFeedback('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  const copySlip = async () => {
+    if (!submittedSlip) return;
+    try {
+      await navigator.clipboard.writeText(submittedSlip);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   if (profileLoading) {
-    return <div className="p-20 text-center font-black text-green-900">VERIFYING ACCOUNT...</div>;
+    return (
+      <div>
+        <div className="h-[68px] border-b border-line bg-white" />
+        <div className="page-shell py-10">
+          <div className="skeleton h-8 w-64 rounded-full" />
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            <div className="skeleton h-[420px] rounded-[20px] lg:col-span-2" />
+            <div className="skeleton h-64 rounded-[20px]" />
+          </div>
+        </div>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50 p-6 text-slate-900 font-sans">
-      <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100">
+  const selectedService =
+    SERVICES.find((service) => service.name === formData.service_type) ?? SERVICES[0];
+  const isBusiness = formData.service_type === 'Business Clearance';
 
-        <div className="bg-green-700 p-6 text-white">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="text-sm font-bold opacity-80 hover:opacity-100 transition-opacity mb-2 block"
-          >
-            ← Back to Dashboard
-          </button>
-          <h1 className="text-2xl font-black uppercase tracking-tight">Document Request</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-green-200 mt-1">
-            Barangay Maporong Request Slip
-          </p>
-        </div>
+  return (
+    <div className="min-h-screen bg-mist/60 pb-24 md:pb-16">
+      <PortalHeader
+        name={profile?.full_name || 'Resident'}
+        role={profile?.role || 'resident'}
+        isVerified={Boolean(profile?.is_verified)}
+        active="request"
+      />
+
+      <StageLayout className="pb-24 md:pb-16" contentClassName="p-3 sm:p-5">
+      <main className="page-shell py-5">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-pine transition hover:gap-2.5"
+        >
+          <ArrowRightIcon className="h-4 w-4 rotate-180" />
+          Back to overview
+        </Link>
 
         {submittedSlip ? (
-          <div className="p-8 text-center space-y-6">
-            <div className="w-16 h-16 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto text-3xl font-black">
-              ✓
+          <section className="animate-fade-up mx-auto mt-6 max-w-xl rounded-[24px] border-2 border-line bg-white p-6 text-center shadow-card sm:p-8">
+            <div className="relative mx-auto flex h-36 w-36 items-center justify-center rounded-[22px] border-2 border-line bg-mint shadow-subtle">
+              <PixelIcon name="rice" size={76} className="text-pine" />
+              <span className="absolute -bottom-2 -right-1 flex h-11 w-11 items-center justify-center rounded-xl border-2 border-white bg-cream text-pine shadow-subtle">
+                <CheckCircleIcon className="h-6 w-6" />
+              </span>
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-green-900 uppercase tracking-tight">Request Submitted</h2>
-              <p className="text-slate-500 text-sm font-bold mt-2">Your request slip number is</p>
-              <p className="mt-3 inline-block bg-slate-50 border-2 border-dashed border-green-700 px-6 py-3 rounded-2xl font-mono text-xl font-black text-green-900">
+            <h1 className="heading-2 mt-4">Request submitted</h1>
+            <p className="body-md mt-2">
+              Barangay staff will review your request. Keep this slip number for follow-up.
+            </p>
+
+            <div className="mt-6 rounded-2xl border-2 border-dashed border-pine/40 bg-subtle px-5 py-4">
+              <p className="text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-muted">
+                Request slip number
+              </p>
+              <p className="mt-1 font-mono text-2xl font-extrabold tracking-tight text-pine">
                 {submittedSlip}
               </p>
-              <p className="text-[10px] text-slate-400 font-bold mt-4 leading-relaxed">
-                Please keep this number. The barangay administrator can view, print, and download your request slip.
-              </p>
             </div>
+
+            <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-center">
+              <Button variant="secondary" onClick={copySlip}>
+                {copied ? 'Copied' : 'Copy slip number'}
+              </Button>
+              <ButtonLink href="/dashboard">
+                <ClipboardIcon className="h-4 w-4" />
+                View my requests
+              </ButtonLink>
+            </div>
+
             <button
+              type="button"
               onClick={() => {
                 setSubmittedSlip(null);
                 setFeedback(null);
+                setCopied(false);
+                setFormData((previous) => ({
+                  ...INITIAL_FORM,
+                  full_name: previous.full_name,
+                  address: previous.address,
+                }));
               }}
-              className="w-full bg-white border-2 border-green-700 text-green-800 hover:bg-green-50 font-black py-4 rounded-xl transition-all uppercase text-xs tracking-widest"
+              className="mt-5 text-sm font-bold text-pine underline-offset-4 hover:underline"
             >
-              Submit Another Request
+              Submit another request
             </button>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="w-full bg-green-700 hover:bg-green-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 uppercase text-xs tracking-widest"
-            >
-              Back to Dashboard
-            </button>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {feedback && (
-              <div className={`md:col-span-2 p-4 rounded-2xl text-xs font-bold ${feedback.type === 'error' ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
-                {feedback.message}
-              </div>
-            )}
-
-            {/* Service Type */}
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Service Requested</label>
-              <select
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.service_type}
-                onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
-              >
-                <option>Barangay Clearance</option>
-                <option>Certificate of Indigency</option>
-                <option>Residency Certificate</option>
-                <option>Barangay ID Card</option>
-                <option>Business Clearance</option>
-              </select>
-            </div>
-
-            {/* Name & Age */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Name</label>
-              <input
-                type="text"
-                required
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.full_name}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Age (auto)</label>
-              <input
-                type="text"
-                readOnly
-                placeholder="Computed from birth date"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 bg-slate-50 text-slate-500 outline-none"
-                value={formData.age}
-              />
-            </div>
-
-            {/* Address */}
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">Address</label>
-              <input
-                type="text"
-                required
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
-
-            {/* Height & Weight */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Height</label>
-              <input
-                type="text"
-                placeholder={`e.g. 5'6"`}
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.height}
-                onChange={(e) => setFormData({ ...formData, height: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Weight</label>
-              <input
-                type="text"
-                placeholder="e.g. 60 kg"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.weight}
-                onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
-              />
-            </div>
-
-            {/* Business & Capital */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Business (Optional)</label>
-              <input
-                type="text"
-                placeholder="Business name"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.business}
-                onChange={(e) => setFormData({ ...formData, business: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Capital (Optional)</label>
-              <input
-                type="text"
-                placeholder="e.g. PHP 50,000"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.capital}
-                onChange={(e) => setFormData({ ...formData, capital: e.target.value })}
-              />
-            </div>
-
-            {/* CP No. & Birth Place */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">CP No. (Optional)</label>
-              <input
-                type="tel"
-                placeholder="09XXXXXXXXX"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.cp_no}
-                onChange={(e) => setFormData({ ...formData, cp_no: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Birth Place (Optional)</label>
-              <input
-                type="text"
-                placeholder="City / Municipality"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.birth_place}
-                onChange={(e) => setFormData({ ...formData, birth_place: e.target.value })}
-              />
-            </div>
-
-            {/* Birth Date & Civil Status */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Birth Date</label>
-              <input
-                type="date"
-                required
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.birthday}
-                onChange={handleBirthdayChange}
-              />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Civil Status</label>
-              <select
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.civil_status}
-                onChange={(e) => setFormData({ ...formData, civil_status: e.target.value })}
-              >
-                <option>Single</option>
-                <option>Married</option>
-                <option>Widowed</option>
-                <option>Separated</option>
-              </select>
-            </div>
-
-            {/* Gender */}
-            <div>
-              <label className="text-xs font-bold text-slate-500 uppercase">Gender</label>
-              <select
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.sex}
-                onChange={(e) => setFormData({ ...formData, sex: e.target.value })}
-              >
-                <option>Male</option>
-                <option>Female</option>
-              </select>
-            </div>
-
-            {/* Purpose */}
-            <div className="md:col-span-2">
-              <div className="flex justify-between items-center mb-1">
-                <label className="text-xs font-bold text-slate-500 uppercase">Purpose of Request</label>
-                <span className="text-[10px] font-bold text-slate-400">{formData.purpose.length}/200</span>
-              </div>
-              <input
-                type="text"
-                required
-                maxLength={200}
-                placeholder="e.g. Local Employment, Scholarship"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.purpose}
-                onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-              />
-            </div>
-
-            {/* For Whom (Optional) */}
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-500 uppercase">For Whom (Optional)</label>
-              <input
-                type="text"
-                placeholder="Leave blank if for yourself"
-                className="w-full p-3 rounded-xl border-2 border-slate-100 focus:border-green-600 outline-none transition-colors"
-                value={formData.request_for}
-                onChange={(e) => setFormData({ ...formData, request_for: e.target.value })}
-              />
-            </div>
-
-            <p className="md:col-span-2 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-              A request slip number will be generated automatically after submission.
+            <p className="body-sm mt-6 flex items-start justify-center gap-2 text-left">
+              <PrinterIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted" />
+              Printing of the official slip is handled at the barangay desk. Your request
+              remains in the staff queue.
             </p>
+          </section>
+        ) : (
+          <>
+            <PageHeader
+              className="animate-fade-up mt-5"
+              eyebrow="Document request"
+              title="New document request"
+              description="Fill in the details once. A request slip number will be generated after you submit, and you can follow the status from your dashboard."
+            />
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="md:col-span-2 w-full bg-green-700 hover:bg-green-800 disabled:bg-slate-400 disabled:cursor-not-allowed text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-95 mt-2"
-            >
-              {loading ? 'SUBMITTING...' : 'SUBMIT REQUEST'}
-            </button>
-          </form>
+            <form onSubmit={handleSubmit} className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+              <div className="space-y-4">
+                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                  <h2 className="heading-3">1. Choose a document</h2>
+                  <p className="body-sm mt-1">
+                    Select the certificate or clearance you need.
+                  </p>
+
+                  <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+                    {SERVICES.map((service) => {
+                      const selected = formData.service_type === service.name;
+                      return (
+                        <label
+                          key={service.slug}
+                          className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition ${
+                            selected
+                              ? 'border-pine bg-mint/60 ring-1 ring-pine'
+                              : 'border-line bg-white hover:border-leaf hover:bg-subtle'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="service_type"
+                            value={service.name}
+                            checked={selected}
+                            onChange={() => update('service_type', service.name)}
+                            className="sr-only"
+                          />
+                          <span
+                            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
+                              selected ? 'bg-pine text-white' : 'bg-mint text-pine'
+                            }`}
+                          >
+                            <ServiceIcon icon={service.icon} className="h-4.5 w-4.5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-extrabold text-forest">
+                              {service.name}
+                            </span>
+                            <span className="mt-0.5 block text-xs font-medium leading-relaxed text-muted">
+                              {service.short}
+                            </span>
+                          </span>
+                          <span
+                            className={`ml-auto mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
+                              selected
+                                ? 'border-pine bg-pine text-white'
+                                : 'border-[#c4d6cb] bg-white text-transparent'
+                            }`}
+                          >
+                            <CheckCircleIcon className="h-3 w-3" />
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                  <h2 className="heading-3">2. Request details</h2>
+                  <p className="body-sm mt-1">
+                    Tell the barangay why you need this document.
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    <Field
+                      label="Purpose of request"
+                      htmlFor="purpose"
+                      required
+                      hint={`${formData.purpose.length}/200 characters`}
+                    >
+                      <input
+                        id="purpose"
+                        type="text"
+                        required
+                        maxLength={200}
+                        value={formData.purpose}
+                        onChange={(event) => update('purpose', event.target.value)}
+                        placeholder="e.g. Local employment, scholarship, medical assistance"
+                        className="input-base"
+                      />
+                    </Field>
+
+                    <Field
+                      label="For whom"
+                      htmlFor="request_for"
+                      hint="Leave blank if the request is for yourself."
+                    >
+                      <input
+                        id="request_for"
+                        type="text"
+                        value={formData.request_for}
+                        onChange={(event) => update('request_for', event.target.value)}
+                        placeholder="Full name of the person you are requesting for"
+                        className="input-base"
+                      />
+                    </Field>
+                  </div>
+                </section>
+
+                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                  <h2 className="heading-3">3. Personal information</h2>
+                  <p className="body-sm mt-1">
+                    Prefilled from your resident record. Correct anything that is outdated.
+                  </p>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <Field label="Full name" htmlFor="full_name" required>
+                        <input
+                          id="full_name"
+                          type="text"
+                          required
+                          autoComplete="name"
+                          value={formData.full_name}
+                          onChange={(event) => update('full_name', event.target.value)}
+                          className="input-base"
+                        />
+                      </Field>
+                    </div>
+
+                    <Field label="Birth date" htmlFor="birthday" required>
+                      <input
+                        id="birthday"
+                        type="date"
+                        required
+                        max={new Date().toISOString().slice(0, 10)}
+                        value={formData.birthday}
+                        onChange={(event) => handleBirthdayChange(event.target.value)}
+                        className="input-base"
+                      />
+                    </Field>
+
+                    <Field label="Age" htmlFor="age" hint="Computed from birth date.">
+                      <input
+                        id="age"
+                        type="text"
+                        readOnly
+                        value={formData.age}
+                        placeholder="—"
+                        className="input-base bg-mist"
+                      />
+                    </Field>
+
+                    <Field label="Sex" htmlFor="sex">
+                      <select
+                        id="sex"
+                        value={formData.sex}
+                        onChange={(event) => update('sex', event.target.value)}
+                        className="input-base"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </Field>
+
+                    <Field label="Civil status" htmlFor="civil_status">
+                      <select
+                        id="civil_status"
+                        value={formData.civil_status}
+                        onChange={(event) => update('civil_status', event.target.value)}
+                        className="input-base"
+                      >
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Widowed">Widowed</option>
+                        <option value="Separated">Separated</option>
+                      </select>
+                    </Field>
+
+                    <div className="sm:col-span-2">
+                      <Field label="Home address" htmlFor="address" required>
+                        <input
+                          id="address"
+                          type="text"
+                          required
+                          autoComplete="street-address"
+                          value={formData.address}
+                          onChange={(event) => update('address', event.target.value)}
+                          className="input-base"
+                        />
+                      </Field>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                  <h2 className="heading-3">4. Additional details</h2>
+                  <p className="body-sm mt-1">
+                    Optional fields that help staff prepare the document correctly.
+                  </p>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Field label="Birth place" htmlFor="birth_place">
+                      <input
+                        id="birth_place"
+                        type="text"
+                        value={formData.birth_place}
+                        onChange={(event) => update('birth_place', event.target.value)}
+                        placeholder="City or municipality"
+                        className="input-base"
+                      />
+                    </Field>
+
+                    <Field label="Contact number" htmlFor="cp_no">
+                      <input
+                        id="cp_no"
+                        type="tel"
+                        inputMode="tel"
+                        value={formData.cp_no}
+                        onChange={(event) => update('cp_no', event.target.value)}
+                        placeholder="09XXXXXXXXX"
+                        className="input-base"
+                      />
+                    </Field>
+
+                    <Field label="Height" htmlFor="height">
+                      <input
+                        id="height"
+                        type="text"
+                        value={formData.height}
+                        onChange={(event) => update('height', event.target.value)}
+                        placeholder={`e.g. 5'6"`}
+                        className="input-base"
+                      />
+                    </Field>
+
+                    <Field label="Weight" htmlFor="weight">
+                      <input
+                        id="weight"
+                        type="text"
+                        value={formData.weight}
+                        onChange={(event) => update('weight', event.target.value)}
+                        placeholder="e.g. 60 kg"
+                        className="input-base"
+                      />
+                    </Field>
+
+                    {isBusiness && (
+                      <>
+                        <Field label="Business name" htmlFor="business">
+                          <input
+                            id="business"
+                            type="text"
+                            value={formData.business}
+                            onChange={(event) => update('business', event.target.value)}
+                            placeholder="Registered or trade name"
+                            className="input-base"
+                          />
+                        </Field>
+
+                        <Field label="Capital" htmlFor="capital">
+                          <input
+                            id="capital"
+                            type="text"
+                            value={formData.capital}
+                            onChange={(event) => update('capital', event.target.value)}
+                            placeholder="e.g. PHP 50,000"
+                            className="input-base"
+                          />
+                        </Field>
+                      </>
+                    )}
+                  </div>
+                </section>
+
+                {feedback && (
+                  <div
+                    role="alert"
+                    className="flex items-start gap-2.5 rounded-2xl border border-[#f1cccc] bg-rejected-bg p-4 text-sm font-semibold text-rejected-ink"
+                  >
+                    <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{feedback}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Summary rail */}
+              <aside className="lg:sticky lg:top-32 lg:self-start">
+                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card">
+                  <p className="eyebrow">Request summary</p>
+
+                  <div className="mt-3 flex items-start gap-3 rounded-2xl border border-line bg-subtle p-3.5">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine">
+                      <ServiceIcon icon={selectedService.icon} className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-sm font-extrabold text-forest">
+                        {selectedService.name}
+                      </p>
+                      <p className="mt-0.5 text-xs font-medium leading-relaxed text-muted">
+                        {selectedService.short}
+                      </p>
+                    </div>
+                  </div>
+
+                  <dl className="mt-4 space-y-2.5 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="font-semibold text-muted">Requested by</dt>
+                      <dd className="max-w-[60%] text-right font-bold text-forest">
+                        {formData.full_name || '—'}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="font-semibold text-muted">For</dt>
+                      <dd className="max-w-[60%] text-right font-bold text-forest">
+                        {formData.request_for || 'Myself'}
+                      </dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <dt className="font-semibold text-muted">Status</dt>
+                      <dd>
+                        <span className="rounded-full border border-[#f2dfb6] bg-pending-bg px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-pending-ink">
+                          Pending review
+                        </span>
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <ul className="mt-4 space-y-2 border-t border-line pt-4">
+                    {[
+                      'A slip number is generated after submission.',
+                      'Staff may ask for corrections before printing.',
+                      'Bring a valid ID when claiming the document.',
+                    ].map((line) => (
+                      <li key={line} className="flex items-start gap-2 text-xs font-medium text-muted">
+                        <CheckCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={buttonClasses('primary', 'lg', 'mt-5 w-full')}
+                  >
+                    {loading ? 'Submitting…' : 'Submit request'}
+                    {!loading && <ArrowRightIcon className="h-4 w-4" />}
+                  </button>
+
+                  <p className="mt-3 flex items-start gap-1.5 text-[0.6875rem] font-medium leading-relaxed text-muted">
+                    <LockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
+                    Your details are visible only to you and authorized barangay staff.
+                  </p>
+                </div>
+
+                <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#cfe7f1] bg-sky p-3.5 text-xs font-semibold leading-relaxed text-[#3a6478]">
+                  <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                  Requirements and processing time are confirmed by barangay staff when
+                  your request is reviewed.
+                </div>
+              </aside>
+            </form>
+          </>
         )}
-      </div>
+      </main>
+      </StageLayout>
     </div>
   );
 }

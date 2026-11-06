@@ -1,28 +1,42 @@
 import './globals.css';
 
-import type { Metadata } from "next";
-import { Lato, Nunito_Sans } from "next/font/google";
+import type { Metadata, Viewport } from 'next';
+import { Lato, Pixelify_Sans } from 'next/font/google';
+import imapMark from '@/assets/illustrations/imap.svg';
 
-const nunitoSans = Nunito_Sans({
-  variable: "--font-nunito-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  display: "swap",
+const pixelSans = Pixelify_Sans({
+  variable: '--font-pixel-sans',
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
 });
 
 const lato = Lato({
-  variable: "--font-lato",
-  subsets: ["latin"],
-  weight: ["400", "700", "900"],
-  display: "swap",
+  variable: '--font-lato',
+  subsets: ['latin'],
+  weight: ['400', '700', '900'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "iMaporong - Barangay Information System",
-  description: "Barangay Information System for Barangay Maporong",
-  icons: {
-    icon: "/vercel.svg",
+  title: {
+    default: 'iMaporong · Barangay Maporong community portal',
+    template: '%s · iMaporong',
   },
+  description:
+    'The online front desk of Barangay Maporong, Oas, Albay. Request documents, follow your request slip, and keep your resident record in one place.',
+  applicationName: 'iMaporong',
+  icons: {
+    icon: imapMark.src,
+    apple: imapMark.src,
+  },
+};
+
+export const viewport: Viewport = {
+  colorScheme: 'light',
+  themeColor: '#386B48',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -33,9 +47,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${nunitoSans.variable} ${lato.variable} h-full antialiased`}
+      className={`${pixelSans.variable} ${lato.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-canvas text-forest">{children}</body>
     </html>
   );
 }

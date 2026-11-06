@@ -1,269 +1,366 @@
-'use client';
-import { useState } from 'react';
-import Image from 'next/image';
-import { supabase } from '../lib/supabase';
-import { useRouter } from 'next/navigation';
-import FeedbackModal from '../components/FeedbackModal';
+import Link from 'next/link';
+import type { Metadata } from 'next';
 
-export default function Home() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState(''); 
-  const [address, setAddress] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('');
-  const [isLogin, setIsLogin] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [authDialog, setAuthDialog] = useState<{ type: 'success' | 'error'; title: string; message: string } | null>(null);
-  const router = useRouter();
+import { SiteHeader } from '@/components/SiteHeader';
+import { SiteFooter } from '@/components/SiteFooter';
+import { RiceFieldScene } from '@/components/landing/RiceFieldScene';
+import { CommunityMap } from '@/components/landing/CommunityMap';
+import { ButtonLink } from '@/components/ui/Button';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Badge } from '@/components/ui/Badge';
+import {
+  BellIcon,
+  CalendarIcon,
+  ClipboardIcon,
+  HandHeartIcon,
+  HomeIcon,
+  MapPinIcon,
+} from '@/components/ui/icons';
+import { BARANGAY } from '@/lib/constants';
+import { getLatestAnnouncements } from '@/lib/data/announcements';
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    if (isLogin) {
-      // --- LOGIN LOGIC (Checks Role for Redirect) ---
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) {
-        setAuthDialog({ type: 'error', title: 'Login Failed', message: error.message });
-      } else if (data?.user) {
-        // Fetch the role from the 'profiles' table
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
+export const metadata: Metadata = {
+  title: 'iMaporong · Rooted in community. Growing together.',
+  description:
+    'The online front desk of Barangay Maporong, Oas, Albay. Request documents, follow announcements, and find the barangay hall — all in one place.',
+};
 
-        if (profileError || !profile) {
-          console.error('Could not load signed-in user role:', profileError);
-          await supabase.auth.signOut();
-          setAuthDialog({
-            type: 'error',
-            title: 'Account Role Could Not Be Verified',
-            message: 'Please contact the barangay administrator.',
-          });
-        } else if (profile.role === 'admin') {
-          router.push('/admin');
-        } else if (profile.role === 'resident') {
-          router.push('/dashboard');
-        } else {
-          await supabase.auth.signOut();
-          setAuthDialog({
-            type: 'error',
-            title: 'Unauthorized Account',
-            message: 'This account does not have an authorized portal role.',
-          });
-        }
-      }
-    } else {
-      // --- SIGN UP LOGIC (Pushes everything to Profiles table) ---
-      const { data, error: authError } = await supabase.auth.signUp({ email, password });
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Date to be confirmed';
+  return new Intl.DateTimeFormat('en-PH', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
 
-      if (authError) {
-        setAuthDialog({ type: 'error', title: 'Registration Failed', message: authError.message });
-      } else if (data.user) {
-        // This creates the actual record in your database
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { 
-              id: data.user.id, 
-              full_name: fullName, 
-              address: address,
-              age: Number(age),
-              gender,
-              role: 'resident', // Default role
-              is_verified: false,
-              bid_number: `BID-2026-${Math.random().toString(36).substr(2, 5).toUpperCase()}`
-            }
-          ]);
+function excerpt(text: string, max = 120) {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  return clean.length > max ? `${clean.slice(0, max).trimEnd()}…` : clean;
+}
 
-        if (profileError) {
-          console.error(profileError);
-          setAuthDialog({
-            type: 'error',
-            title: 'Profile Could Not Be Saved',
-            message: 'Your account was created, but the profile database entry failed.',
-          });
-        } else {
-          setIsLogin(true);
-          // Clear inputs for security
-          setFullName('');
-          setAddress('');
-          setAge('');
-          setGender('');
-          setAuthDialog({ type: 'success', title: 'Registration Successful', message: 'You can now log in to your account.' });
-        }
-      }
-    }
-    setLoading(false);
-  };
+export default async function HomePage() {
+  const announcements = await getLatestAnnouncements(3);
+
+  const services = [
+    {
+      title: 'Announcements',
+      description: 'News, advisories, and reminders from the barangay desk.',
+      action: 'View updates',
+      href: '/#announcements',
+      tone: 'bg-mint text-pine',
+      icon: <BellIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Request a Document',
+      description: 'Clearances, certificates, and resident ID — online.',
+      action: 'Start a request',
+      href: '/dashboard/request',
+      tone: 'bg-[#fbefd2] text-[#8a6116]',
+      icon: <ClipboardIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Calendar of Activities',
+      description: 'Assemblies, clean-ups, and events worth showing up for.',
+      action: 'See schedule',
+      href: '/#announcements',
+      tone: 'bg-sky text-[#3a6478]',
+      icon: <CalendarIcon className="h-5 w-5" />,
+    },
+    {
+      title: 'Community Map',
+      description: 'Find the barangay hall and the places around it.',
+      action: 'Open the map',
+      href: '/#community',
+      tone: 'bg-crop/25 text-pine',
+      icon: <MapPinIcon className="h-5 w-5" />,
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
-      {authDialog && (
-        <FeedbackModal
-          title={authDialog.title}
-          message={authDialog.message}
-          type={authDialog.type}
-          onClose={() => setAuthDialog(null)}
-        />
-      )}
-      {/* NAVIGATION */}
-      <nav className="flex justify-between items-center p-6 max-w-7xl mx-auto sticky top-0 bg-white/80 backdrop-blur-md z-50">
-        <div className="flex items-center gap-2">
-          <Image
-            src="/maporong-logo.png"
-            alt="Barangay Maporong"
-            width={120}
-            height={75}
-            priority
-            className="h-12 w-auto object-contain"
-          />
-        </div>
-        <div className="flex gap-6 items-center">
-          <a href="#portal" className="bg-green-800 text-white px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-orange-600 transition-all shadow-md">
-            Resident Portal
-          </a>
-        </div>
-      </nav>
+    <div id="top">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-full focus:bg-pine focus:px-4 focus:py-2 focus:text-sm focus:font-bold focus:text-white"
+      >
+        Skip to content
+      </a>
 
-      {/* HERO SECTION */}
-      <main className="max-w-7xl mx-auto px-6 pt-12 pb-24 grid md:grid-cols-2 gap-12 items-center">
-        <div className="order-2 md:order-1">
-          <span className="bg-orange-100 text-orange-700 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em]">Official Baranggay Digital Portal</span>
-          <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-green-900 mt-4 mb-6 leading-[0.9]">
-            GROWTH. <br />
-            CULTURE. <br />
-            <span className="text-orange-500 italic text-5xl md:text-7xl underline decoration-yellow-400">HARVEST.</span>
-          </h2>
-          <p className="text-lg text-slate-600 font-bold leading-relaxed mb-8 max-w-md">
-            The future of <span className="text-green-800">Barangay Maporong</span> is digital. Access IDs, documents, and services in one place.
-          </p>
-          <div className="flex gap-4">
-            <a href="#portal" className="inline-block bg-green-800 text-white px-10 py-5 rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:scale-105 transition-transform">
-              Get Started →
-            </a>
+      <SiteHeader />
+
+      <main id="main">
+        {/* ------------------------------------------------------------- Hero */}
+        <section className="hero-sky relative isolate min-h-[min(calc(100svh-72px),700px)] overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+            <RiceFieldScene className="absolute inset-0 h-full w-full" />
+            <div className="absolute inset-0 bg-gradient-to-b from-cream/95 via-cream/75 to-cream/15" />
           </div>
-        </div>
 
-        {/* ARTWORK */}
-        <div className="order-1 md:order-2 relative h-[400px] md:h-[550px] bg-slate-50 rounded-[4rem] overflow-hidden border-8 border-white shadow-2xl">
-          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 500" preserveAspectRatio="none">
-            <circle cx="350" cy="50" r="120" fill="#facc15" fillOpacity="0.4" />
-            <path d="M-50 300 Q100 200 250 350 T500 300 V500 H-50 Z" fill="#14532d" />
-            <path d="M-50 350 Q120 280 280 400 T550 350 V500 H-50 Z" fill="#ea580c" fillOpacity="0.7" />
-            <path d="M-50 400 Q150 350 300 450 T600 400 V500 H-50 Z" fill="#2563eb" fillOpacity="0.5" />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="bg-white/80 backdrop-blur-xl p-10 rounded-[3rem] shadow-2xl border border-white/50 text-center scale-110">
-              <p className="text-5xl font-black font-display text-green-900 leading-none mb-2 italic tracking-tighter">2026</p>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Digital Harvest</p>
+          <div className="relative z-10 mx-auto max-w-4xl px-5 pb-6 pt-8 text-center sm:pb-8 sm:pt-10">
+            <p className="inline-flex items-center gap-2 rounded-full border-2 border-earth/10 bg-cream/80 px-3.5 py-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-pine shadow-subtle backdrop-blur-sm">
+              <MapPinIcon className="h-3.5 w-3.5" />
+              {BARANGAY.name} · {BARANGAY.municipality}, {BARANGAY.province}
+            </p>
+
+            <h1 className="display-hero mx-auto mt-4 max-w-3xl text-forest">
+              Rooted in community.
+              <span className="block text-pine">Growing together.</span>
+            </h1>
+
+            <p className="mx-auto mt-3 max-w-xl text-base font-semibold leading-relaxed text-forest/75 sm:text-lg">
+              iMaporong is your barangay desk online — services, updates, and bayanihan in
+              one place.
+            </p>
+
+            <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <ButtonLink
+                href="/auth?mode=register"
+                size="lg"
+                className="w-full min-w-[180px] sm:w-auto"
+              >
+                Get Started
+              </ButtonLink>
+              <ButtonLink
+                href="/#services"
+                variant="secondary"
+                size="lg"
+                className="w-full sm:w-auto"
+              >
+                Explore services
+              </ButtonLink>
+            </div>
+
+            <p className="mt-3 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-forest/50">
+              Free to use · Private by design · Made for Maporong
+            </p>
+          </div>
+
+          <p className="sr-only">
+            A pixel-art view of Barangay Maporong at golden hour: rice fields, a river with a
+            wooden bridge, nipa houses, coconut trees, and neighbours at work and at rest.
+          </p>
+        </section>
+
+        {/* --------------------------------------------------------- Services */}
+        <section id="services" className="scroll-mt-24 bg-cream py-16 sm:py-20">
+          <div className="page-shell">
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="eyebrow">Barangay services</p>
+              <h2 className="heading-1 mt-2">Four ways to start.</h2>
+              <p className="body-md mt-2">
+                Everything you need from the barangay desk, without the back-and-forth.
+              </p>
+            </div>
+
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {services.map((service) => (
+                <Link
+                  key={service.title}
+                  href={service.href}
+                  className="interactive-card group flex h-full flex-col rounded-[24px] border-2 border-earth/10 bg-white p-5 shadow-subtle sm:p-6"
+                >
+                  <span
+                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${service.tone}`}
+                  >
+                    {service.icon}
+                  </span>
+                  <h3 className="mt-5 font-display text-lg font-extrabold leading-snug text-forest">
+                    {service.title}
+                  </h3>
+                  <p className="body-sm mt-2 flex-1">{service.description}</p>
+                  <span className="mt-5 w-fit border-b-2 border-transparent pb-0.5 text-sm font-bold text-pine transition group-hover:border-pine">
+                    {service.action}
+                  </span>
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
+
+        {/* ---------------------------------------------------- Announcements */}
+        <section
+          id="announcements"
+          className="scroll-mt-24 border-y-2 border-line/70 bg-subtle py-16 sm:py-20"
+        >
+          <div className="page-shell">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="eyebrow">Updates</p>
+                <h2 className="heading-1 mt-2">Latest from the barangay</h2>
+                <p className="body-md mt-2 max-w-xl">
+                  Short updates from the desk. Published here the moment staff post them.
+                </p>
+              </div>
+              <Badge tone="green">
+                <BellIcon className="h-3.5 w-3.5" />
+                {announcements.available
+                  ? `${announcements.items.length} recent`
+                  : 'Awaiting first post'}
+              </Badge>
+            </div>
+
+            {announcements.items.length > 0 ? (
+              <div className="mt-8 grid gap-4 md:grid-cols-3">
+                {announcements.items.map((announcement) => (
+                  <article
+                    key={announcement.id}
+                    className="interactive-card flex h-full flex-col rounded-[24px] border-2 border-earth/10 bg-white p-5 shadow-subtle sm:p-6"
+                  >
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="sky">{announcement.category || 'General'}</Badge>
+                      <time
+                        dateTime={announcement.published_at}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted"
+                      >
+                        <CalendarIcon className="h-3.5 w-3.5" />
+                        {formatDate(announcement.published_at)}
+                      </time>
+                    </div>
+                    <h3 className="mt-3 line-clamp-2 font-display text-lg font-extrabold leading-snug text-forest">
+                      {announcement.title}
+                    </h3>
+                    <p className="body-sm mt-2 line-clamp-3 flex-1">
+                      {excerpt(announcement.body)}
+                    </p>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="mt-8">
+                <EmptyState
+                  icon={<BellIcon className="h-5 w-5" />}
+                  title="No updates yet"
+                  description={
+                    announcements.available
+                      ? 'The desk has not published an update yet. New posts appear here right away.'
+                      : 'The noticeboard is being prepared. Published announcements will appear here once the barangay sets it up.'
+                  }
+                />
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* -------------------------------------------------------- Community */}
+        <section id="community" className="scroll-mt-24 bg-cream py-16 sm:py-20">
+          <div className="page-shell grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="order-2 lg:order-1">
+              <div className="overflow-hidden rounded-[28px] border-2 border-earth/10 bg-white p-2.5 shadow-card">
+                <a
+                  href={BARANGAY.mapsUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block overflow-hidden rounded-[20px] border border-line"
+                  aria-label="Open Barangay Maporong in Google Maps"
+                >
+                  <CommunityMap className="h-auto w-full" />
+                </a>
+                <div className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs font-bold text-forest">
+                    Barangay Maporong, {BARANGAY.municipality}, {BARANGAY.province}
+                  </p>
+                  <a
+                    href={BARANGAY.mapsUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-fit border-b-2 border-pine/40 pb-0.5 text-xs font-bold text-pine transition hover:border-pine"
+                  >
+                    Open in Maps
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2">
+              <p className="eyebrow">Our community</p>
+              <h2 className="heading-1 mt-2">Find home on the map — then skip the trip.</h2>
+              <p className="body-md mt-3 max-w-lg">
+                Maporong is rice fields, river light, and neighbours who show up for each
+                other. iMaporong keeps the barangay desk close, wherever you are.
+              </p>
+
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                {[
+                  {
+                    icon: <MapPinIcon className="h-4.5 w-4.5" />,
+                    title: 'Oas, Albay',
+                    text: 'In the heart of the Bicol Region.',
+                  },
+                  {
+                    icon: <HomeIcon className="h-4.5 w-4.5" />,
+                    title: 'Rice and river',
+                    text: 'A farming community by the water.',
+                  },
+                  {
+                    icon: <HandHeartIcon className="h-4.5 w-4.5" />,
+                    title: 'Bayanihan',
+                    text: 'Neighbours helping neighbours.',
+                  },
+                  {
+                    icon: <BellIcon className="h-4.5 w-4.5" />,
+                    title: 'One desk',
+                    text: 'Services and updates in one place.',
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.title}
+                    className="rounded-2xl border-2 border-earth/10 bg-white p-4 shadow-subtle"
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint text-pine">
+                      {item.icon}
+                    </span>
+                    <p className="mt-3 text-sm font-extrabold text-forest">{item.title}</p>
+                    <p className="body-sm mt-1">{item.text}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* --------------------------------------------------------------- CTA */}
+        <section id="about" className="scroll-mt-24 bg-cream pb-16 sm:pb-20">
+          <div className="page-shell">
+            <div className="relative overflow-hidden rounded-[32px] border-2 border-earth/10 bg-mint px-6 py-11 sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:px-12">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -right-8 -top-10 h-40 w-40 rounded-full bg-rice/30"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-6 left-6 hidden gap-1 sm:flex"
+              >
+                <span className="h-10 w-1.5 rounded-full bg-pine/25" />
+                <span className="mt-3 h-7 w-1.5 rounded-full bg-pine/20" />
+                <span className="mt-1 h-9 w-1.5 rounded-full bg-pine/15" />
+              </div>
+
+              <div className="relative z-10 max-w-2xl">
+                <p className="eyebrow">Growing together</p>
+                <h2 className="heading-1 mt-2">
+                  Every seed has a beginning. Every harvest has a community.
+                </h2>
+                <p className="body-md mt-3">
+                  Join your neighbours on iMaporong — the barangay desk that grows with the
+                  community.
+                </p>
+              </div>
+
+              <div className="relative z-10 mt-7 flex flex-col gap-3 sm:flex-row lg:mt-0 lg:shrink-0">
+                <ButtonLink href="/auth?mode=register" size="lg">
+                  Get Started
+                </ButtonLink>
+                <ButtonLink href="/auth" variant="secondary" size="lg">
+                  Sign In
+                </ButtonLink>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      {/* PORTAL SECTION */}
-      <section id="portal" className="bg-slate-100 py-24 px-6 flex justify-center">
-        <div className="max-w-md w-full bg-white p-10 rounded-[3rem] shadow-2xl border-b-8 border-green-800">
-          <div className="text-center mb-10">
-            <h3 className="text-3xl font-black uppercase tracking-tighter text-slate-900 italic">
-              {isLogin ? 'Resident Login' : 'Resident Sign Up'}
-            </h3>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Maporong Digital Services</p>
-          </div>
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            {/* NAME & ADDRESS (Sign Up Only) */}
-            {!isLogin && (
-              <>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Full Name</label>
-                  <input 
-                    type="text" placeholder="Juan Dela Cruz"
-                    className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
-                    value={fullName} onChange={(e) => setFullName(e.target.value)} required
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Home Address</label>
-                  <input 
-                    type="text" placeholder="Purok, Street, Maporong"
-                    className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold shadow-inner"
-                    value={address} onChange={(e) => setAddress(e.target.value)} required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Age</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="120"
-                      placeholder="Age"
-                      className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
-                      value={age}
-                      onChange={(event) => setAge(event.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Gender</label>
-                    <select
-                      className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
-                      value={gender}
-                      onChange={(event) => setGender(event.target.value)}
-                      required
-                    >
-                      <option value="" disabled>Select</option>
-                      <option value="Female">Female</option>
-                      <option value="Male">Male</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Email Address</label>
-              <input 
-                type="email" placeholder="resident@maporong.com"
-                className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
-                value={email} onChange={(e) => setEmail(e.target.value)} required
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black uppercase text-slate-400 ml-4 tracking-widest">Password</label>
-              <input 
-                type="password" placeholder="••••••••"
-                className="w-full p-5 bg-slate-50 rounded-2xl border-none ring-2 ring-transparent focus:ring-green-800 outline-none transition-all font-bold"
-                value={password} onChange={(e) => setPassword(e.target.value)} required
-              />
-            </div>
-
-            <button 
-              type="submit" disabled={loading}
-              className="w-full bg-green-800 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl hover:bg-orange-600 transition-all mt-4"
-            >
-              {loading ? 'Processing...' : isLogin ? 'Login to Portal' : 'Register Account'}
-            </button>
-          </form>
-
-          <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-6 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-green-800 transition-colors">
-            {isLogin ? "New resident? Create an account" : "Already have an account? Login"}
-          </button>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="py-12 bg-white text-center border-t border-slate-100">
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.5em]">Barangay Maporong Official Portal © 2026</p>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

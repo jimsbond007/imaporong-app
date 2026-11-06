@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480" fill="none" role="img" aria-labelledby="adminTitle adminDesc">
+  <title id="adminTitle">Barangay staff reviewing records</title>
+  <desc id="adminDesc">A flat vector scene of a barangay staff member at a desk with a laptop, folders and a small records chart.</desc>
+  <rect width="640" height="480" rx="32" fill="#F1F7F3"/>
+
+  <!-- wall chart -->
+  <rect x="404" y="66" width="176" height="126" rx="14" fill="#FFFFFF"/>
+  <rect x="426" y="140" width="20" height="30" rx="5" fill="#DCEFE8"/>
+  <rect x="458" y="118" width="20" height="52" rx="5" fill="#75B99B"/>
+  <rect x="490" y="132" width="20" height="38" rx="5" fill="#DCEFE8"/>
+  <rect x="522" y="98" width="20" height="72" rx="5" fill="#267653"/>
+  <rect x="426" y="86" width="86" height="7" rx="3.5" fill="#DDE8E1"/>
+  <rect x="426" y="182" width="132" height="4" rx="2" fill="#DDE8E1"/>
+
+  <!-- window -->
+  <rect x="70" y="72" width="150" height="120" rx="12" fill="#E6F3FA"/>
+  <path d="M145 72v120M70 132h150" stroke="#FFFFFF" stroke-width="8"/>
+  <path d="M96 168c14-18 28-26 44-26" stroke="#75B99B" stroke-width="7" stroke-linecap="round"/>
+
+  <!-- staff -->
+  <circle cx="252" cy="196" r="32" fill="#344A40"/>
+  <circle cx="254" cy="203" r="27" fill="#B07A50"/>
+  <path d="M206 286c0-28 21-50 48-50s48 22 48 50v62h-96v-62Z" fill="#267653"/>
+  <rect x="216" y="250" width="16" height="80" rx="8" fill="#267653"/>
+  <rect x="274" y="250" width="16" height="80" rx="8" fill="#267653"/>
+  <circle cx="214" cy="336" r="9" fill="#B07A50"/>
+  <circle cx="286" cy="336" r="9" fill="#B07A50"/>
+
+  <!-- desk -->
+  <rect x="58" y="340" width="524" height="118" rx="18" fill="#FFFFFF"/>
+  <rect x="58" y="340" width="524" height="20" rx="10" fill="#267653"/>
+  <rect x="86" y="392" width="120" height="8" rx="4" fill="#DDE8E1"/>
+  <rect x="86" y="412" width="74" height="8" rx="4" fill="#DDE8E1"/>
+
+  <!-- laptop -->
+  <rect x="228" y="246" width="132" height="82" rx="8" fill="#344A40"/>
+  <rect x="238" y="256" width="112" height="62" rx="4" fill="#E6F3FA"/>
+  <rect x="248" y="266" width="52" height="5" rx="2.5" fill="#267653"/>
+  <rect x="248" y="278" width="80" height="4" rx="2" fill="#75B99B"/>
+  <rect x="248" y="288" width="66" height="4" rx="2" fill="#75B99B"/>
+  <rect x="248" y="298" width="42" height="4" rx="2" fill="#75B99B"/>
+  <path d="M214 334h160l10 12H204l10-12Z" fill="#344A40"/>
+
+  <!-- folders -->
+  <g>
+    <rect x="430" y="300" width="118" height="40" rx="7" fill="#F5C879"/>
+    <rect x="444" y="288" width="96" height="34" rx="7" fill="#DCEFE8"/>
+    <rect x="456" y="276" width="74" height="30" rx="7" fill="#75B99B"/>
+    <rect x="470" y="288" width="34" height="6" rx="3" fill="#FFFFFF" opacity="0.8"/>
+  </g>
+
+  <!-- plant -->
+  <rect x="536" y="388" width="44" height="52" rx="8" fill="#267653"/>
+  <path d="M558 388c-4-24-18-38-34-46M558 388c4-22 18-36 34-44M558 388c-2-26 6-44 16-52" stroke="#75B99B" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="524" cy="340" r="12" fill="#75B99B"/>
+  <circle cx="594" cy="342" r="12" fill="#75B99B"/>
+  <circle cx="576" cy="322" r="10" fill="#75B99B"/>
+</svg>

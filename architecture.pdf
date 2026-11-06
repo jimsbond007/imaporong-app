@@ -1,0 +1,153 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+3 0 obj
+<< /Length 5662 >>
+stream
+q
+1.000 1.000 1.000 rg
+0 0 792 612 re f
+Q
+q
+0.130 0.360 0.630 rg
+0 605 792 7 re f
+Q
+q 0.100 0.190 0.320 rg BT /F2 22 Tf 1 0 0 1 34 566 Tm (iMaporong - System Architecture) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 10 Tf 1 0 0 1 34 548 Tm (Browser-based application with direct Supabase services; no separate custom API server found in the repository.) Tj ET Q
+q
+0.960 0.970 0.990 rg
+0.800 0.850 0.900 RG 1 w
+30 217 130 300 re B
+Q
+q 0.130 0.360 0.630 rg BT /F2 9 Tf 1 0 0 1 45 492 Tm (USERS) Tj ET Q
+q
+0.900 0.940 0.980 rg
+0.720 0.800 0.890 RG 1 w
+44 387 102 83 re B
+Q
+q 0.100 0.190 0.320 rg BT /F2 13 Tf 1 0 0 1 56 441 Tm (Resident) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 56 424 Tm (Sign in / register) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 56 410 Tm (Submit requests) Tj ET Q
+q
+0.900 0.940 0.980 rg
+0.720 0.800 0.890 RG 1 w
+44 287 102 83 re B
+Q
+q 0.100 0.190 0.320 rg BT /F2 13 Tf 1 0 0 1 56 341 Tm (Admin) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 56 324 Tm (Manage residents) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 56 310 Tm (Process requests) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 43 253 Tm (Uses the web app) Tj ET Q
+q
+0.940 0.970 1.000 rg
+0.680 0.780 0.900 RG 1.2 w
+190 217 238 300 re B
+Q
+q
+0.130 0.360 0.630 rg
+190 483 238 34 re f
+Q
+q 1.000 1.000 1.000 rg BT /F2 10 Tf 1 0 0 1 207 498 Tm (WEB APP / BROWSER) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F2 13 Tf 1 0 0 1 208 453 Tm (Next.js 16 App Router) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 10 Tf 1 0 0 1 208 435 Tm (React 19 + TypeScript) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 10 Tf 1 0 0 1 208 415 Tm (Tailwind CSS 4 interface) Tj ET Q
+q
+0.800 0.860 0.920 rg
+207 395 204 1 re f
+Q
+q 0.130 0.360 0.630 rg BT /F2 9 Tf 1 0 0 1 208 372 Tm (Client-side screens) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 208 353 Tm (Auth, resident dashboard, admin) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 208 337 Tm (pages and service-request forms) Tj ET Q
+q 0.130 0.360 0.630 rg BT /F2 9 Tf 1 0 0 1 208 308 Tm (Supabase JS client) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 208 289 Tm (Reads / writes data over HTTPS) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 208 262 Tm (html-to-image: slip / ID export) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 8 Tf 1 0 0 1 208 239 Tm (Config: NEXT_PUBLIC_SUPABASE_*) Tj ET Q
+q
+0.950 0.970 0.990 rg
+0.590 0.700 0.820 RG 1.2 w
+475 105 287 425 re B
+Q
+q
+0.050 0.480 0.480 rg
+475 496 287 34 re f
+Q
+q 1.000 1.000 1.000 rg BT /F2 10 Tf 1 0 0 1 493 511 Tm (SUPABASE \(MANAGED BACKEND\)) Tj ET Q
+q
+1.000 1.000 1.000 rg
+0.720 0.820 0.830 RG 1 w
+494 389 249 91 re B
+Q
+q 0.050 0.480 0.480 rg BT /F2 12 Tf 1 0 0 1 511 453 Tm (Supabase Auth) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 511 434 Tm (User accounts and sign-in sessions) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 9 Tf 1 0 0 1 511 416 Tm (Issues identity / access token) Tj ET Q
+q
+1.000 1.000 1.000 rg
+0.720 0.820 0.830 RG 1 w
+494 267 249 91 re B
+Q
+q 0.050 0.480 0.480 rg BT /F2 12 Tf 1 0 0 1 511 331 Tm (Supabase Data API) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 511 312 Tm (PostgREST data access via JS client) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 9 Tf 1 0 0 1 511 294 Tm (Applies authenticated database access) Tj ET Q
+q
+0.910 0.960 0.940 rg
+0.640 0.800 0.730 RG 1 w
+494 124 249 112 re B
+Q
+q 0.050 0.480 0.480 rg BT /F2 12 Tf 1 0 0 1 511 209 Tm (PostgreSQL database) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F2 9 Tf 1 0 0 1 511 189 Tm (profiles | residents | service_requests) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 511 168 Tm (Row Level Security \(RLS\) policies) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 511 149 Tm (SQL migrations + database triggers) Tj ET Q
+q 0.050 0.480 0.480 rg BT /F2 8 Tf 1 0 0 1 511 132 Tm (Enforces access at the data layer) Tj ET Q
+q 0.280 0.400 0.550 RG 1.8 w 160 407 m 190 407 l S Q
+q 0.280 0.400 0.550 rg 190 407 m 183.791035540545 403.7675457712096 l 183.791035540545 410.2324542287904 l h f Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 163 418 Tm (HTTPS) Tj ET Q
+q 0.130 0.360 0.630 RG 1.8 w 428 432 m 494 436 l S Q
+q 0.130 0.360 0.630 rg 494 436 m 487.99795479368635 432.3978543420112 l 487.6068597660523 438.85092229797294 l h f Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 436 448 Tm (Sign-in / identity) Tj ET Q
+q 0.130 0.360 0.630 RG 1.8 w 428 312 m 494 312 l S Q
+q 0.130 0.360 0.630 rg 494 312 m 487.791035540545 308.7675457712096 l 487.791035540545 315.2324542287904 l h f Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 432 325 Tm (Data requests) Tj ET Q
+q 0.050 0.480 0.480 RG 1.6 w 618 389 m 618 358 l S Q
+q 0.050 0.480 0.480 rg 618 358 m 614.7675457712096 364.208964459455 l 621.2324542287904 364.208964459455 l h f Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 626 375 Tm (session) Tj ET Q
+q 0.050 0.480 0.480 RG 1.6 w 618 267 m 618 236 l S Q
+q 0.050 0.480 0.480 rg 618 236 m 614.7675457712096 242.208964459455 l 621.2324542287904 242.208964459455 l h f Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 626 252 Tm (SQL + RLS) Tj ET Q
+q
+0.960 0.970 0.990 rg
+0.840 0.870 0.900 RG 0.8 w
+30 25 732 61 re B
+Q
+q 0.130 0.360 0.630 rg BT /F2 9 Tf 1 0 0 1 46 64 Tm (Architecture summary) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 46 46 Tm (Users interact with the Next.js browser UI. The UI calls Supabase Auth and Data API directly;) Tj ET Q
+q 0.100 0.190 0.320 rg BT /F1 9 Tf 1 0 0 1 46 32 Tm (PostgreSQL stores application records and RLS policies control which authenticated users can access them.) Tj ET Q
+q 0.350 0.420 0.500 rg BT /F1 7 Tf 1 0 0 1 34 5 Tm (Note: the repository does not establish a production hosting provider; add the actual deployment platform if known.) Tj ET Q
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 5 0 R /MediaBox [0 0 792 612] /Resources << /Font << /F1 1 0 R /F2 2 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+6 0 obj
+<< /Type /Catalog /Pages 5 0 R >>
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000085 00000 n 
+0000000160 00000 n 
+0000005874 00000 n 
+0000006010 00000 n 
+0000006067 00000 n 
+trailer
+<< /Size 7 /Root 6 0 R >>
+startxref
+6116
+%%EOF

@@ -1,0 +1,243 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="560" viewBox="0 0 1440 560" fill="none" role="img" aria-labelledby="wideHeroTitle wideHeroDesc">
+  <title id="wideHeroTitle">Residents gathered in front of the barangay hall</title>
+  <desc id="wideHeroDesc">A wide flat vector scene of a barangay plaza with rice fields, houses, mango trees and many neighbours of different ages talking, walking and playing together.</desc>
+
+  <!-- sky -->
+  <rect width="1440" height="560" fill="#F7FBF9"/>
+  <circle cx="1188" cy="118" r="86" fill="#F5C879" opacity="0.18"/>
+  <circle cx="1188" cy="118" r="56" fill="#F5C879" opacity="0.55"/>
+  <circle cx="1188" cy="118" r="34" fill="#F5C879"/>
+
+  <!-- clouds -->
+  <g fill="#FFFFFF">
+    <rect x="164" y="92" width="132" height="34" rx="17"/>
+    <rect x="196" y="72" width="86" height="34" rx="17"/>
+    <rect x="228" y="104" width="132" height="24" rx="12"/>
+    <rect x="700" y="64" width="112" height="30" rx="15"/>
+    <rect x="736" y="46" width="66" height="30" rx="15"/>
+    <rect x="1040" y="150" width="96" height="26" rx="13"/>
+    <rect x="1064" y="134" width="58" height="26" rx="13"/>
+  </g>
+
+  <!-- birds -->
+  <g stroke="#75B99B" stroke-width="3" stroke-linecap="round" fill="none">
+    <path d="M430 128c7-7 16-7 23 0"/>
+    <path d="M470 112c6-6 14-6 20 0"/>
+    <path d="M960 92c7-7 16-7 23 0"/>
+  </g>
+
+  <!-- distant hills -->
+  <path d="M0 350c120-56 220-56 330 0s232 54 342 2 244-64 356-10 246 48 412 4v214H0V350Z" fill="#DCEFE8"/>
+  <path d="M0 388c138-40 246-38 360 4s250 38 366 2 236-40 358-6 220 30 356 0v172H0V388Z" fill="#F1F7F3"/>
+
+  <!-- rice field rows -->
+  <g stroke="#75B99B" stroke-width="3" opacity="0.35" stroke-linecap="round">
+    <path d="M-20 470c160-26 300-26 440 6"/>
+    <path d="M-20 496c160-26 300-26 440 6"/>
+    <path d="M-20 522c160-26 300-26 440 6"/>
+    <path d="M900 470c180-24 340-22 560 8"/>
+    <path d="M900 498c180-24 340-22 560 8"/>
+    <path d="M900 526c180-24 340-22 560 8"/>
+  </g>
+
+  <!-- small houses, left -->
+  <g>
+    <rect x="118" y="318" width="150" height="94" rx="8" fill="#FFFFFF"/>
+    <path d="M104 320 192 266l88 54Z" fill="#267653"/>
+    <rect x="150" y="352" width="32" height="32" rx="4" fill="#E6F3FA"/>
+    <rect x="206" y="352" width="32" height="32" rx="4" fill="#E6F3FA"/>
+    <rect x="176" y="382" width="34" height="30" rx="4" fill="#DCEFE8"/>
+    <rect x="296" y="340" width="118" height="72" rx="8" fill="#FFFFFF"/>
+    <path d="M282 342 355 298l73 44Z" fill="#75B99B"/>
+    <rect x="318" y="366" width="26" height="26" rx="4" fill="#E6F3FA"/>
+    <rect x="364" y="366" width="26" height="26" rx="4" fill="#E6F3FA"/>
+    <rect x="336" y="392" width="26" height="20" rx="3" fill="#DCEFE8"/>
+  </g>
+
+  <!-- mango trees -->
+  <g>
+    <rect x="500" y="316" width="16" height="112" rx="8" fill="#A97C55"/>
+    <path d="M508 342c-16-10-26-24-28-42M509 366c18-12 28-28 32-48" stroke="#A97C55" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="508" cy="280" r="54" fill="#75B99B"/>
+    <circle cx="466" cy="310" r="36" fill="#75B99B"/>
+    <circle cx="550" cy="310" r="36" fill="#75B99B"/>
+    <circle cx="492" cy="266" r="26" fill="#DCEFE8" opacity="0.5"/>
+    <circle cx="530" cy="322" r="8" fill="#F5C879"/>
+    <circle cx="480" cy="330" r="6" fill="#F5C879"/>
+  </g>
+  <g>
+    <rect x="868" y="322" width="14" height="104" rx="7" fill="#A97C55"/>
+    <path d="M875 348c-14-9-22-21-24-36M876 368c15-10 24-24 27-40" stroke="#A97C55" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="875" cy="292" r="46" fill="#75B99B"/>
+    <circle cx="840" cy="318" r="31" fill="#75B99B"/>
+    <circle cx="910" cy="318" r="31" fill="#75B99B"/>
+    <circle cx="861" cy="280" r="22" fill="#DCEFE8" opacity="0.5"/>
+  </g>
+
+  <!-- barangay hall -->
+  <g>
+    <circle cx="1112" cy="330" r="150" fill="#DCEFE8" opacity="0.45"/>
+    <rect x="986" y="284" width="252" height="140" rx="10" fill="#FFFFFF"/>
+    <path d="M964 286 1112 204l148 82Z" fill="#267653"/>
+    <rect x="1074" y="302" width="76" height="24" rx="8" fill="#DCEFE8"/>
+    <rect x="1086" y="346" width="52" height="78" rx="6" fill="#267653"/>
+    <circle cx="1128" cy="386" r="4" fill="#F5C879"/>
+    <rect x="1010" y="322" width="42" height="40" rx="5" fill="#E6F3FA"/>
+    <rect x="1172" y="322" width="42" height="40" rx="5" fill="#E6F3FA"/>
+    <rect x="1010" y="382" width="42" height="42" rx="5" fill="#E6F3FA"/>
+    <rect x="1172" y="382" width="42" height="42" rx="5" fill="#E6F3FA"/>
+    <rect x="978" y="418" width="268" height="12" rx="6" fill="#DDE8E1"/>
+    <rect x="1040" y="246" width="144" height="16" rx="8" fill="#75B99B" opacity="0.5"/>
+  </g>
+
+  <!-- plaza -->
+  <path d="M300 470c120-22 262-22 386 0s250 20 380-2 250-14 374 8v84H300v-90Z" fill="#FFFFFF" opacity="0.72"/>
+  <path d="M300 470c120-22 262-22 386 0s250 20 380-2 250-14 374 8" stroke="#DDE8E1" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- benches -->
+  <g>
+    <rect x="628" y="446" width="86" height="10" rx="5" fill="#DCEFE8"/>
+    <rect x="638" y="456" width="8" height="20" rx="3" fill="#75B99B"/>
+    <rect x="696" y="456" width="8" height="20" rx="3" fill="#75B99B"/>
+  </g>
+
+  <!-- people -->
+  <!-- elder couple walking, left foreground -->
+  <g transform="translate(392 434)">
+    <ellipse cx="14" cy="70" rx="22" ry="6" fill="#344A40" opacity="0.08"/>
+    <rect x="2" y="26" width="24" height="30" rx="11" fill="#B8C9A8"/>
+    <circle cx="14" cy="14" r="11" fill="#C98D64"/>
+    <path d="M3 12c2-8 8-11 11-11s9 3 11 11" fill="#3B3A36"/>
+    <rect x="4" y="54" width="8" height="16" rx="4" fill="#344A40"/>
+    <rect x="16" y="54" width="8" height="16" rx="4" fill="#344A40"/>
+  </g>
+  <g transform="translate(430 440)">
+    <ellipse cx="13" cy="64" rx="20" ry="6" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="24" width="24" height="26" rx="11" fill="#D9B8A8"/>
+    <circle cx="13" cy="13" r="10" fill="#E0AC82"/>
+    <path d="M3 11c2-7 7-10 10-10s8 3 10 10" fill="#6B5545"/>
+    <rect x="3" y="48" width="8" height="14" rx="4" fill="#344A40"/>
+    <rect x="15" y="48" width="8" height="14" rx="4" fill="#344A40"/>
+  </g>
+
+  <!-- family with child, mid left -->
+  <g transform="translate(520 414)">
+    <ellipse cx="16" cy="82" rx="26" ry="7" fill="#344A40" opacity="0.08"/>
+    <rect x="2" y="28" width="28" height="38" rx="13" fill="#7FA8C9"/>
+    <circle cx="16" cy="15" r="11" fill="#A96F4C"/>
+    <path d="M4 13c2-8 8-11 12-11s10 3 12 11" fill="#3B3A36"/>
+    <rect x="5" y="64" width="8" height="18" rx="4" fill="#344A40"/>
+    <rect x="19" y="64" width="8" height="18" rx="4" fill="#344A40"/>
+  </g>
+  <g transform="translate(556 428)">
+    <ellipse cx="11" cy="62" rx="18" ry="5" fill="#344A40" opacity="0.08"/>
+    <rect x="0" y="24" width="22" height="26" rx="10" fill="#D9B8A8"/>
+    <circle cx="11" cy="12" r="9" fill="#C98D64"/>
+    <path d="M2 10c2-7 6-9 9-9s7 2 10 9" fill="#6B5545"/>
+    <rect x="2" y="48" width="7" height="14" rx="3.5" fill="#344A40"/>
+    <rect x="13" y="48" width="7" height="14" rx="3.5" fill="#344A40"/>
+  </g>
+  <g transform="translate(590 456)">
+    <ellipse cx="10" cy="34" rx="14" ry="4" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="12" width="18" height="14" rx="7" fill="#F5C879"/>
+    <circle cx="10" cy="7" r="7" fill="#E0AC82"/>
+    <path d="M3 6c1-5 4-6 7-6s6 1 7 6" fill="#3B3A36"/>
+    <rect x="3" y="24" width="5" height="9" rx="2.5" fill="#344A40"/>
+    <rect x="12" y="24" width="5" height="9" rx="2.5" fill="#344A40"/>
+  </g>
+
+  <!-- resident holding document, centre -->
+  <g transform="translate(700 402)">
+    <ellipse cx="20" cy="94" rx="30" ry="8" fill="#344A40" opacity="0.08"/>
+    <rect x="4" y="32" width="32" height="44" rx="15" fill="#267653"/>
+    <rect x="-4" y="44" width="12" height="30" rx="6" fill="#267653"/>
+    <rect x="32" y="44" width="12" height="30" rx="6" fill="#267653"/>
+    <circle cx="0" cy="72" r="6" fill="#C98D64"/>
+    <circle cx="40" cy="72" r="6" fill="#C98D64"/>
+    <circle cx="20" cy="16" r="13" fill="#C98D64"/>
+    <path d="M6 14c2-9 9-13 14-13s12 4 14 13" fill="#3B3A36"/>
+    <rect x="7" y="72" width="10" height="20" rx="5" fill="#344A40"/>
+    <rect x="23" y="72" width="10" height="20" rx="5" fill="#344A40"/>
+    <g transform="rotate(-8 38 60)">
+      <rect x="28" y="48" width="24" height="30" rx="4" fill="#FFFFFF"/>
+      <rect x="32" y="54" width="16" height="3" rx="1.5" fill="#267653"/>
+      <rect x="32" y="60" width="16" height="2" rx="1" fill="#DDE8E1"/>
+      <rect x="32" y="65" width="11" height="2" rx="1" fill="#DDE8E1"/>
+    </g>
+  </g>
+
+  <!-- two neighbours chatting -->
+  <g transform="translate(786 418)">
+    <ellipse cx="15" cy="78" rx="24" ry="6" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="26" width="28" height="36" rx="13" fill="#A9B7C4"/>
+    <circle cx="15" cy="14" r="11" fill="#E0AC82"/>
+    <path d="M4 12c2-8 7-11 11-11s9 3 11 11" fill="#6B5545"/>
+    <rect x="4" y="60" width="8" height="16" rx="4" fill="#344A40"/>
+    <rect x="18" y="60" width="8" height="16" rx="4" fill="#344A40"/>
+  </g>
+  <g transform="translate(824 424)">
+    <ellipse cx="14" cy="72" rx="22" ry="6" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="24" width="26" height="34" rx="12" fill="#D9B8A8"/>
+    <circle cx="14" cy="13" r="10" fill="#A96F4C"/>
+    <path d="M3 12c2-8 7-11 11-11s9 3 11 11" fill="#3B3A36"/>
+    <rect x="4" y="56" width="8" height="14" rx="4" fill="#344A40"/>
+    <rect x="17" y="56" width="8" height="14" rx="4" fill="#344A40"/>
+  </g>
+
+  <!-- queue at the hall steps -->
+  <g transform="translate(960 414)">
+    <ellipse cx="13" cy="80" rx="22" ry="6" fill="#344A40" opacity="0.08"/>
+    <rect x="0" y="26" width="26" height="38" rx="12" fill="#B8C9A8"/>
+    <circle cx="13" cy="14" r="11" fill="#C98D64"/>
+    <path d="M2 12c2-8 7-11 11-11s9 3 11 11" fill="#3B3A36"/>
+    <rect x="3" y="62" width="8" height="16" rx="4" fill="#344A40"/>
+    <rect x="16" y="62" width="8" height="16" rx="4" fill="#344A40"/>
+  </g>
+  <g transform="translate(1002 420)">
+    <ellipse cx="12" cy="74" rx="20" ry="5" fill="#344A40" opacity="0.08"/>
+    <rect x="0" y="24" width="24" height="34" rx="11" fill="#7FA8C9"/>
+    <circle cx="12" cy="13" r="10" fill="#A96F4C"/>
+    <path d="M2 11c2-7 6-10 10-10s9 3 11 10" fill="#6B5545"/>
+    <rect x="3" y="56" width="7" height="15" rx="3.5" fill="#344A40"/>
+    <rect x="15" y="56" width="7" height="15" rx="3.5" fill="#344A40"/>
+  </g>
+
+  <!-- kids playing, right foreground -->
+  <g transform="translate(1216 452)">
+    <ellipse cx="10" cy="36" rx="15" ry="4" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="12" width="18" height="15" rx="7" fill="#F5C879"/>
+    <circle cx="10" cy="6" r="7" fill="#E0AC82"/>
+    <path d="M3 5c1-4 4-5 7-5s6 1 7 5" fill="#3B3A36"/>
+    <rect x="3" y="25" width="5" height="10" rx="2.5" fill="#344A40"/>
+    <rect x="12" y="25" width="5" height="10" rx="2.5" fill="#344A40"/>
+  </g>
+  <g transform="translate(1252 448)">
+    <ellipse cx="10" cy="40" rx="15" ry="4" fill="#344A40" opacity="0.08"/>
+    <rect x="1" y="14" width="18" height="16" rx="7" fill="#B8C9A8"/>
+    <circle cx="10" cy="7" r="7" fill="#C98D64"/>
+    <path d="M3 6c1-5 4-6 7-6s6 1 7 6" fill="#6B5545"/>
+    <rect x="3" y="28" width="5" height="10" rx="2.5" fill="#344A40"/>
+    <rect x="12" y="28" width="5" height="10" rx="2.5" fill="#344A40"/>
+  </g>
+  <circle cx="1290" cy="470" r="9" fill="#F5C879"/>
+  <path d="M1272 470h36" stroke="#DDE8E1" stroke-width="3"/>
+
+  <!-- foreground planting -->
+  <g>
+    <circle cx="34" cy="524" r="30" fill="#75B99B"/>
+    <circle cx="74" cy="540" r="22" fill="#75B99B"/>
+    <circle cx="8" cy="544" r="18" fill="#75B99B"/>
+    <circle cx="1382" cy="528" r="26" fill="#75B99B"/>
+    <circle cx="1414" cy="544" r="18" fill="#75B99B"/>
+  </g>
+
+  <!-- little details: bunting -->
+  <path d="M600 210c120 40 300 40 420 0" stroke="#DDE8E1" stroke-width="3" fill="none"/>
+  <g fill="#75B99B">
+    <path d="M654 226l12 20-24 0Z"/>
+    <path d="M726 244l12 20-24 0Z"/>
+    <path d="M806 252l12 20-24 0Z"/>
+    <path d="M886 244l12 20-24 0Z"/>
+    <path d="M958 226l12 20-24 0Z"/>
+  </g>
+</svg>
