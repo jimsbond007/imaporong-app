@@ -36,6 +36,19 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 
 Only the anon key belongs in the client. Never add a service-role key to this project or expose it to the browser. All access is enforced by Row Level Security.
 
+## Google sign-in setup
+
+Google sign-in uses Supabase Auth, so no new environment variables or packages are needed. Configure it once in the dashboards:
+
+1. **Google Cloud Console** → APIs & Services → Credentials → *Create OAuth client ID* (type: Web application).
+   - Authorized redirect URI: `https://<project>.supabase.co/auth/v1/callback`
+2. **Supabase** → Authentication → Providers → Google: enable it and paste the Client ID and Client Secret.
+3. **Supabase** → Authentication → URL Configuration:
+   - Site URL: your production URL.
+   - Redirect URLs: add `http://localhost:3000/auth/callback` and `https://<your-domain>/auth/callback`.
+
+New Google users get a `resident` profile through the existing `handle_new_user()` trigger (name from their Google account, address shown as "Address not provided" until staff update the record). Admin access must still be granted by an existing administrator.
+
 ## Database setup
 
 Apply every file in `supabase/migrations/` in filename order. For a linked project run `supabase db push`; otherwise paste each file into the Supabase SQL Editor.

@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 
 import { supabase } from '@/lib/supabase';
 import { buttonClasses } from '@/components/ui/Button';
+import { GoogleIcon } from '@/components/ui/GoogleIcon';
 import { PixelBackdrop } from '@/components/portal/PixelBackdrop';
 import {
   ArrowRightIcon,
@@ -26,16 +27,19 @@ function safeNextPath(value: string | null) {
 export function AuthForm({
   initialMode = 'login',
   roleError = false,
+  oauthError = false,
   nextPath = null,
 }: {
   initialMode?: Mode;
   roleError?: boolean;
+  oauthError?: boolean;
   nextPath?: string | null;
 }) {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [notice, setNotice] = useState<{ type: 'error' | 'success'; message: string } | null>(
     roleError
       ? {
@@ -43,7 +47,12 @@ export function AuthForm({
           message:
             'This account does not have an authorized portal role. Please contact the barangay administrator.',
         }
-      : null,
+      : oauthError
+        ? {
+            type: 'error',
+            message: 'Google sign-in could not be completed. Please try again.',
+          }
+        : null,
   );
 
   const [email, setEmail] = useState('');
@@ -107,6 +116,27 @@ export function AuthForm({
     const destination = resolveDestination(profile.role, safeNextPath(nextPath));
     router.replace(destination);
     router.refresh();
+  };
+
+  const handleGoogle = async () => {
+    setGoogleLoading(true);
+    setNotice(null);
+
+    const next = safeNextPath(nextPath);
+    const redirectTo = `${window.location.origin}/auth/callback${
+      next ? `?next=${encodeURIComponent(next)}` : ''
+    }`;
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    });
+
+    // On success the browser is redirected to Google, so we only land here on failure.
+    if (error) {
+      setNotice({ type: 'error', message: error.message });
+      setGoogleLoading(false);
+    }
   };
 
   const handleRegister = async (event: React.FormEvent) => {
@@ -288,6 +318,22 @@ export function AuthForm({
               </div>
             )}
 
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={loading || googleLoading}
+              className={buttonClasses('secondary', 'lg', 'w-full')}
+            >
+              <GoogleIcon className="h-5 w-5" />
+              {googleLoading ? 'Redirecting to Google…' : 'Continue with Google'}
+            </button>
+
+            <div className="my-5 flex items-center gap-3" role="separator" aria-label="or">
+              <span className="h-px flex-1 bg-line" />
+              <span className="text-xs font-bold uppercase tracking-[0.12em] text-muted">or</span>
+              <span className="h-px flex-1 bg-line" />
+            </div>
+
             <form
               onSubmit={mode === 'login' ? handleLogin : handleRegister}
               className="space-y-3 sm:space-y-4"
@@ -400,7 +446,7 @@ export function AuthForm({
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || googleLoading}
                 className={buttonClasses('primary', 'lg', 'mt-2 w-full')}
               >
                 {loading ? (

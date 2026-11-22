@@ -18,6 +18,7 @@ export default async function AuthPage({
     <AuthForm
       initialMode={params.mode === 'register' ? 'register' : 'login'}
       roleError={params.error === 'role'}
+      oauthError={params.error === 'oauth'}
       nextPath={params.next ?? null}
     />
   );

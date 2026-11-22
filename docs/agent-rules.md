@@ -870,7 +870,8 @@ import heroCommunity from '@/assets/illustrations/hero-community.svg';
 | Route | Access | Data |
 | --- | --- | --- |
 | `/` | public | published `announcements`, `get_public_stats()` |
-| `/auth` | public | Supabase Auth; `?mode=register`, `?next=`, `?error=role` |
+| `/auth` | public | Supabase Auth (email/password + Google); `?mode=register`, `?next=`, `?error=role`, `?error=oauth` |
+| `/auth/callback` | public | Google OAuth return; exchanges the code for a session, enforces the `profiles.role` gate, then redirects |
 | `/dashboard` | resident or admin | own `profiles`, own `service_requests`, 3 latest announcements |
 | `/dashboard/announcements` | resident or admin | published announcements + category filter |
 | `/dashboard/request` | resident or admin | own profile, inserts `service_requests` |
