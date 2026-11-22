@@ -569,6 +569,191 @@ textarea {
   opacity: 1;
 }
 
+
+/* ============================================================
+   Landing — blurred, flowing green backdrop
+   Soft organic blobs, heavily blurred, drifting slowly. Sits
+   behind every section of the home page (decorative only).
+   ============================================================ */
+.flow-page {
+  background-image: linear-gradient(
+    180deg,
+    #e6f1da 0%,
+    #f1f6e4 22%,
+    #e2efd6 46%,
+    #eef5e0 70%,
+    #dcebd0 100%
+  );
+  overflow-x: clip;
+}
+
+.flow-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.flow-blob {
+  position: absolute;
+  display: block;
+  filter: blur(72px);
+  opacity: 0.7;
+  will-change: transform;
+  border-radius: 62% 38% 55% 45% / 48% 60% 40% 52%;
+  animation: flow-drift 26s ease-in-out infinite alternate;
+}
+
+.flow-blob-1 {
+  top: -4%;
+  left: -14%;
+  width: 62vw;
+  height: 38rem;
+  background: radial-gradient(circle at 40% 40%, #8daf72, #b5d19b 60%, transparent 75%);
+  transform: rotate(-14deg);
+}
+.flow-blob-2 {
+  top: 8%;
+  right: -16%;
+  width: 56vw;
+  height: 34rem;
+  background: radial-gradient(circle at 60% 50%, #5f9a6b, #9cc58b 58%, transparent 75%);
+  opacity: 0.5;
+  animation-duration: 32s;
+  animation-delay: -8s;
+}
+.flow-blob-3 {
+  top: 30%;
+  left: 8%;
+  width: 70vw;
+  height: 26rem;
+  background: linear-gradient(100deg, #a9cf98, #7fb383 50%, #cfe5b8);
+  opacity: 0.55;
+  border-radius: 70% 30% 60% 40% / 55% 45% 55% 45%;
+  transform: rotate(8deg);
+  animation-duration: 36s;
+  animation-delay: -14s;
+}
+.flow-blob-4 {
+  top: 48%;
+  right: -12%;
+  width: 54vw;
+  height: 36rem;
+  background: radial-gradient(circle at 50% 50%, #6aa57a, #a8d09a 60%, transparent 78%);
+  opacity: 0.5;
+  animation-duration: 30s;
+  animation-delay: -4s;
+}
+.flow-blob-5 {
+  top: 64%;
+  left: -12%;
+  width: 60vw;
+  height: 34rem;
+  background: radial-gradient(circle at 45% 45%, #8fbf86, #c4dfae 62%, transparent 78%);
+  transform: rotate(18deg);
+  animation-duration: 34s;
+  animation-delay: -18s;
+}
+.flow-blob-6 {
+  top: 82%;
+  right: 4%;
+  width: 58vw;
+  height: 28rem;
+  background: linear-gradient(120deg, #7fb383, #b9d8a3 55%, #e2efc8);
+  opacity: 0.55;
+  border-radius: 40% 60% 45% 55% / 60% 40% 60% 40%;
+  animation-duration: 38s;
+  animation-delay: -10s;
+}
+.flow-blob-7 {
+  top: 18%;
+  left: 36%;
+  width: 40vw;
+  height: 22rem;
+  background: radial-gradient(circle, #e7f2c9, transparent 70%);
+  opacity: 0.7;
+  animation-duration: 28s;
+  animation-delay: -20s;
+}
+
+.flow-silhouette {
+  position: absolute;
+  display: block;
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none; /* base layer caps svg at 100%; keep the wave edge-to-edge */
+  height: 22rem;
+  fill: #faf6eb;
+  opacity: 0.9;
+  filter: drop-shadow(0 -10px 24px rgba(56, 107, 72, 0.1));
+}
+.flow-silhouette-1,
+.flow-silhouette-2 {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 100%);
+}
+.flow-silhouette-1 {
+  top: 17%;
+  height: 20rem;
+}
+.flow-silhouette-2 {
+  top: 55%;
+  height: 24rem;
+  transform: scaleX(-1);
+}
+.flow-silhouette-3 {
+  bottom: -1px;
+  height: 18rem;
+}
+
+@media (max-width: 640px) {
+  .flow-silhouette {
+    height: 12rem;
+  }
+}
+
+
+@keyframes flow-drift {
+  0% {
+    translate: 0 0;
+    scale: 1;
+    rotate: 0deg;
+  }
+  50% {
+    translate: 4vw 3rem;
+    scale: 1.08;
+    rotate: 6deg;
+  }
+  100% {
+    translate: -3vw -2rem;
+    scale: 0.96;
+    rotate: -5deg;
+  }
+}
+
+@media (max-width: 640px) {
+  .flow-blob {
+    filter: blur(48px);
+  }
+  .flow-blob-1,
+  .flow-blob-2,
+  .flow-blob-3,
+  .flow-blob-4,
+  .flow-blob-5,
+  .flow-blob-6 {
+    width: 120vw;
+    height: 22rem;
+  }
+}
+
+@media print {
+  .flow-bg {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
