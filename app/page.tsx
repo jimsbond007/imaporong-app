@@ -1,17 +1,16 @@
-import Link from 'next/link';
 import type { Metadata } from 'next';
 
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import { RiceFieldScene } from '@/components/landing/RiceFieldScene';
 import { CommunityMap } from '@/components/landing/CommunityMap';
+import { ServiceShowcase } from '@/components/landing/ServiceShowcase';
 import { ButtonLink } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Badge } from '@/components/ui/Badge';
 import {
   BellIcon,
   CalendarIcon,
-  ClipboardIcon,
   HandHeartIcon,
   HomeIcon,
   MapPinIcon,
@@ -43,41 +42,6 @@ function excerpt(text: string, max = 120) {
 export default async function HomePage() {
   const announcements = await getLatestAnnouncements(3);
 
-  const services = [
-    {
-      title: 'Announcements',
-      description: 'News, advisories, and reminders from the barangay desk.',
-      action: 'View updates',
-      href: '/#announcements',
-      tone: 'bg-mint text-pine',
-      icon: <BellIcon className="h-5 w-5" />,
-    },
-    {
-      title: 'Request a Document',
-      description: 'Clearances, certificates, and resident ID — online.',
-      action: 'Start a request',
-      href: '/dashboard/request',
-      tone: 'bg-[#fbefd2] text-[#8a6116]',
-      icon: <ClipboardIcon className="h-5 w-5" />,
-    },
-    {
-      title: 'Calendar of Activities',
-      description: 'Assemblies, clean-ups, and events worth showing up for.',
-      action: 'See schedule',
-      href: '/#announcements',
-      tone: 'bg-sky text-[#3a6478]',
-      icon: <CalendarIcon className="h-5 w-5" />,
-    },
-    {
-      title: 'Community Map',
-      description: 'Find the barangay hall and the places around it.',
-      action: 'Open the map',
-      href: '/#community',
-      tone: 'bg-crop/25 text-pine',
-      icon: <MapPinIcon className="h-5 w-5" />,
-    },
-  ];
-
   return (
     <div id="top">
       <a
@@ -89,12 +53,46 @@ export default async function HomePage() {
 
       <SiteHeader />
 
-      <main id="main">
+      <main id="main" className="flow-page relative isolate">
+        {/* Blurred, flowing green backdrop shared by every section */}
+        <div aria-hidden="true" className="flow-bg">
+          <span className="flow-blob flow-blob-1" />
+          <span className="flow-blob flow-blob-2" />
+          <span className="flow-blob flow-blob-3" />
+          <span className="flow-blob flow-blob-4" />
+          <span className="flow-blob flow-blob-5" />
+          <span className="flow-blob flow-blob-6" />
+          <span className="flow-blob flow-blob-7" />
+
+          {/* Cream silhouettes: soft, flowing ribbons layered over the green */}
+          <svg
+            className="flow-silhouette flow-silhouette-1"
+            viewBox="0 0 1440 320"
+            preserveAspectRatio="none"
+          >
+            <path d="M0 150C180 60 330 40 520 110C700 176 830 250 1030 200C1200 158 1320 70 1440 100V320H0Z" />
+          </svg>
+          <svg
+            className="flow-silhouette flow-silhouette-2"
+            viewBox="0 0 1440 320"
+            preserveAspectRatio="none"
+          >
+            <path d="M0 90C140 150 300 230 500 190C700 150 800 40 1010 60C1190 78 1320 170 1440 130V320H0Z" />
+          </svg>
+          <svg
+            className="flow-silhouette flow-silhouette-3"
+            viewBox="0 0 1440 320"
+            preserveAspectRatio="none"
+          >
+            <path d="M0 120C200 40 360 70 560 140C760 210 900 230 1080 160C1230 102 1350 90 1440 140V320H0Z" />
+          </svg>
+        </div>
+
         {/* ------------------------------------------------------------- Hero */}
         <section className="hero-sky relative isolate min-h-[min(calc(100svh-72px),700px)] overflow-hidden">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
             <RiceFieldScene className="absolute inset-0 h-full w-full" />
-            <div className="absolute inset-0 bg-gradient-to-b from-cream/95 via-cream/75 to-cream/15" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#eaf4e0]/95 via-[#e3f0d9]/70 to-transparent" />
           </div>
 
           <div className="relative z-10 mx-auto max-w-4xl px-5 pb-6 pt-8 text-center sm:pb-8 sm:pt-10">
@@ -143,7 +141,7 @@ export default async function HomePage() {
         </section>
 
         {/* --------------------------------------------------------- Services */}
-        <section id="services" className="scroll-mt-24 bg-cream py-16 sm:py-20">
+        <section id="services" className="scroll-mt-24 py-16 sm:py-20">
           <div className="page-shell">
             <div className="mx-auto max-w-2xl text-center">
               <p className="eyebrow">Barangay services</p>
@@ -153,35 +151,14 @@ export default async function HomePage() {
               </p>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              {services.map((service) => (
-                <Link
-                  key={service.title}
-                  href={service.href}
-                  className="interactive-card group flex h-full flex-col rounded-[24px] border-2 border-earth/10 bg-white p-5 shadow-subtle sm:p-6"
-                >
-                  <span
-                    className={`flex h-12 w-12 items-center justify-center rounded-2xl ${service.tone}`}
-                  >
-                    {service.icon}
-                  </span>
-                  <h3 className="mt-5 font-display text-lg font-extrabold leading-snug text-forest">
-                    {service.title}
-                  </h3>
-                  <p className="body-sm mt-2 flex-1">{service.description}</p>
-                  <span className="mt-5 w-fit border-b-2 border-transparent pb-0.5 text-sm font-bold text-pine transition group-hover:border-pine">
-                    {service.action}
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <ServiceShowcase />
           </div>
         </section>
 
         {/* ---------------------------------------------------- Announcements */}
         <section
           id="announcements"
-          className="scroll-mt-24 border-y-2 border-line/70 bg-subtle py-16 sm:py-20"
+          className="scroll-mt-24 border-y-2 border-pine/10 bg-white/35 py-16 backdrop-blur-sm sm:py-20"
         >
           <div className="page-shell">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -243,7 +220,7 @@ export default async function HomePage() {
         </section>
 
         {/* -------------------------------------------------------- Community */}
-        <section id="community" className="scroll-mt-24 bg-cream py-16 sm:py-20">
+        <section id="community" className="scroll-mt-24 py-16 sm:py-20">
           <div className="page-shell grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div className="order-2 lg:order-1">
               <div className="overflow-hidden rounded-[28px] border-2 border-earth/10 bg-white p-2.5 shadow-card">
@@ -320,7 +297,7 @@ export default async function HomePage() {
         </section>
 
         {/* --------------------------------------------------------------- CTA */}
-        <section id="about" className="scroll-mt-24 bg-cream pb-16 sm:pb-20">
+        <section id="about" className="scroll-mt-24 pb-16 sm:pb-20">
           <div className="page-shell">
             <div className="relative overflow-hidden rounded-[32px] border-2 border-earth/10 bg-mint px-6 py-11 sm:px-10 lg:flex lg:items-center lg:justify-between lg:gap-10 lg:px-12">
               <div
