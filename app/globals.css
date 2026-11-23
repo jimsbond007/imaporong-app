@@ -107,6 +107,45 @@ textarea {
   outline-offset: 3px;
 }
 
+/* Scrollbars: a cream track with a pine, pill-shaped thumb to match the theme */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--color-mist);
+    border-left: 2px solid var(--color-line);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-pine);
+    border: 3px solid var(--color-mist);
+    border-radius: 999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--color-pine-deep);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: var(--color-forest);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--color-mist);
+  }
+}
+
+/* Firefox and other browsers without ::-webkit-scrollbar */
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-color: var(--color-pine) var(--color-mist);
+    scrollbar-width: thin;
+  }
+}
+
 @layer base {
   img,
   svg {

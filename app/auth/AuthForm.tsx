@@ -299,12 +299,6 @@ export function AuthForm({
               </button>
             </div>
 
-            <p className="mb-5 rounded-xl border-2 border-line bg-white px-3.5 py-3 text-xs leading-relaxed text-muted">
-              {mode === 'login'
-                ? 'Staff accounts with administrator access open the staff workspace automatically. For security, account roles cannot be changed from this sign-in page.'
-                : 'New registrations receive resident access. An existing administrator must grant staff access to an account.'}
-            </p>
-
             {notice && (
               <div
                 role={notice.type === 'error' ? 'alert' : 'status'}
