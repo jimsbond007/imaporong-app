@@ -11,7 +11,7 @@ export function PixelBackdrop({ className = '' }: { className?: string }) {
       aria-hidden="true"
       className={`pointer-events-none absolute inset-0 overflow-hidden bg-cream ${className}`}
     >
-      <RiceFieldScene className="absolute inset-0 h-full w-full scale-105 opacity-60" />
+      <RiceFieldScene className="scene-art absolute inset-0 h-full w-full scale-105 opacity-60" />
       <div className="absolute inset-0 bg-cream/55" />
     </div>
   );

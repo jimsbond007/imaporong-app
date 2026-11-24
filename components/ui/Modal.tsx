@@ -115,16 +115,16 @@ export function Modal({
         aria-labelledby="modal-title"
         aria-describedby={description ? 'modal-description' : undefined}
         tabIndex={-1}
-        className={`my-auto w-full ${sizes[size]} animate-fade-up overflow-hidden rounded-[24px] border-2 border-forest/20 bg-white shadow-modal`}
+        className={`my-auto w-full ${sizes[size]} animate-fade-up overflow-hidden rounded-[24px] border-2 border-forest/20 bg-surface shadow-modal`}
       >
         <header
           className={`flex items-start gap-4 border-b px-5 py-4 sm:px-6 ${
             tone === 'danger'
-              ? 'border-[#f1cccc] bg-rejected-bg'
+              ? 'border-rejected-line bg-rejected-bg'
               : 'border-line bg-mist'
           }`}
         >
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-white text-pine">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-surface text-pine-ink">
             <PixelIcon name={tone === 'danger' ? 'alert' : 'sprout'} size={22} />
           </span>
           <div className="min-w-0 flex-1">
@@ -142,7 +142,7 @@ export function Modal({
             onClick={onClose}
             disabled={busy}
             aria-label="Close dialog"
-            className="rounded-full p-2 text-muted transition hover:bg-white hover:text-forest disabled:opacity-50"
+            className="rounded-full p-2 text-muted transition hover:bg-surface hover:text-forest disabled:opacity-50"
           >
             <CloseIcon className="h-5 w-5" />
           </button>

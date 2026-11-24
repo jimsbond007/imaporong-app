@@ -22,10 +22,10 @@ export function StagePanel({
 }) {
   return (
     <section
-      className={`rounded-[22px] border-2 border-line bg-white p-4 shadow-subtle sm:p-5 ${className}`}
+      className={`rounded-[22px] border-2 border-line bg-surface p-4 shadow-subtle sm:p-5 ${className}`}
     >
       <h2 className="flex items-center gap-2 font-display text-base font-bold text-forest">
-        <PixelIcon name={icon} size={22} className="text-pine" />
+        <PixelIcon name={icon} size={22} className="text-pine-ink" />
         {title}
       </h2>
       <div className="mt-4">{children}</div>
@@ -46,7 +46,7 @@ export function TaskRow({
 }) {
   return (
     <div className="flex flex-col gap-3 border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0 sm:flex-row sm:items-start">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint text-pine">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
         <PixelIcon name={icon} size={20} />
       </span>
       <div className="min-w-0 flex-1">
@@ -100,7 +100,7 @@ export function ShortcutButton({
 } & ShortcutAction) {
   const content = (
     <>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
         <PixelIcon name={icon} size={22} />
       </span>
       <span className="min-w-0">
@@ -111,7 +111,7 @@ export function ShortcutButton({
   );
 
   const className =
-    'interactive-card flex min-h-[76px] items-start gap-3 rounded-2xl border-2 border-line bg-white p-3.5 text-left shadow-subtle';
+    'interactive-card flex min-h-[76px] items-start gap-3 rounded-2xl border-2 border-line bg-surface p-3.5 text-left shadow-subtle';
 
   return href ? (
     <Link href={href} className={className}>
@@ -136,7 +136,7 @@ export function AnnouncementBar({
   return (
     <section className="sticky bottom-20 z-20 flex flex-col gap-3 rounded-2xl border-2 border-rice/60 bg-straw p-4 shadow-card sm:bottom-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-pine">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-pine-ink">
           <PixelIcon name="news" size={22} />
         </span>
         <div className="min-w-0">

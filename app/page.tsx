@@ -91,19 +91,19 @@ export default async function HomePage() {
         {/* ------------------------------------------------------------- Hero */}
         <section className="hero-sky relative isolate min-h-[min(calc(100svh-72px),700px)] overflow-hidden">
           <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-            <RiceFieldScene className="absolute inset-0 h-full w-full" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#eaf4e0]/95 via-[#e3f0d9]/70 to-transparent" />
+            <RiceFieldScene className="scene-art absolute inset-0 h-full w-full" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#eaf4e0]/95 via-[#e3f0d9]/70 to-transparent dark:from-[#0f1613]/85 dark:via-[#0f1613]/50" />
           </div>
 
           <div className="relative z-10 mx-auto max-w-4xl px-5 pb-6 pt-8 text-center sm:pb-8 sm:pt-10">
-            <p className="inline-flex items-center gap-2 rounded-full border-2 border-earth/10 bg-cream/80 px-3.5 py-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-pine shadow-subtle backdrop-blur-sm">
+            <p className="inline-flex items-center gap-2 rounded-full border-2 border-earth/10 bg-cream/80 px-3.5 py-1.5 text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-pine-ink shadow-subtle backdrop-blur-sm">
               <MapPinIcon className="h-3.5 w-3.5" />
               {BARANGAY.name} · {BARANGAY.municipality}, {BARANGAY.province}
             </p>
 
             <h1 className="display-hero mx-auto mt-4 max-w-3xl text-forest">
               Rooted in community.
-              <span className="block text-pine">Growing together.</span>
+              <span className="block text-pine-ink">Growing together.</span>
             </h1>
 
             <p className="mx-auto mt-3 max-w-xl text-base font-semibold leading-relaxed text-forest/75 sm:text-lg">
@@ -154,7 +154,7 @@ export default async function HomePage() {
         {/* ---------------------------------------------------- Announcements */}
         <section
           id="announcements"
-          className="scroll-mt-24 border-y-2 border-pine/10 bg-white/35 py-16 backdrop-blur-sm sm:py-20"
+          className="scroll-mt-24 border-y-2 border-pine/10 bg-surface/35 py-16 backdrop-blur-sm sm:py-20"
         >
           <div className="page-shell">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -206,7 +206,7 @@ export default async function HomePage() {
         <section id="community" className="scroll-mt-24 py-16 sm:py-20">
           <div className="page-shell grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
             <div className="order-2 lg:order-1">
-              <div className="overflow-hidden rounded-[28px] border-2 border-earth/10 bg-white p-2.5 shadow-card">
+              <div className="overflow-hidden rounded-[28px] border-2 border-earth/10 bg-surface p-2.5 shadow-card">
                 <a
                   href={BARANGAY.mapsUrl}
                   target="_blank"
@@ -266,9 +266,9 @@ export default async function HomePage() {
                 ].map((item) => (
                   <div
                     key={item.title}
-                    className="rounded-2xl border-2 border-earth/10 bg-white p-4 shadow-subtle"
+                    className="rounded-2xl border-2 border-earth/10 bg-surface p-4 shadow-subtle"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint text-pine">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint text-pine-ink">
                       {item.icon}
                     </span>
                     <p className="mt-3 text-sm font-extrabold text-forest">{item.title}</p>

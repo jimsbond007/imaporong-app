@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/* Lets components write dark:... utilities that follow the theme toggle. */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 /* ============================================================
    iMaporong design tokens
-   Light, community-first palette. No dark mode.
+   Community-first palette with a light theme (default) and a dark
+   theme. The dark theme swaps the same tokens under
+   [data-theme='dark'] on <html>; see the block after @theme.
    ============================================================ */
 @theme {
   --font-sans: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
@@ -27,6 +32,24 @@
   --color-gold: #e5b84d;
   --color-muted: #5f6a58;
   --color-subtle: #fdfaf1;
+
+  /* Surfaces & inks that used to be hard-coded (white, hex) */
+  --color-surface: #ffffff;
+  --color-paper: #faf6eb; /* always-light cream, for text on dark panels */
+  --color-ink-solid: #354638; /* solid dark-green fill (footer, dark buttons) */
+  --color-pine-ink: #386b48; /* green used as TEXT; lightens in dark mode */
+  --color-skyband: #c3e9f5;
+  --color-sky-ink: #3a6478;
+  --color-sky-deep: #22414f;
+  --color-sky-line: #cfe7f1;
+  --color-ready-line: #c4e3d5;
+  --color-pending-line: #f2dfb6;
+  --color-chip-pending: #fbefd2;
+  --color-rejected-line: #f1cccc;
+  --color-rejected-deep: #7c3535;
+  --color-field-line: #c4d6cb;
+  --color-placeholder: #98aaa0;
+  --panel-edge: #354638;
 
   --color-pending-bg: #fdf3de;
   --color-pending-ink: #8a6116;
@@ -53,11 +76,115 @@
 }
 
 :root {
-  color-scheme: light only;
+  color-scheme: light;
   --background: #faf6eb;
   --foreground: #354638;
   --font-body: var(--font-lato), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-pixel-sans), ui-monospace, "Courier New", monospace;
+}
+
+/* ============================================================
+   Dark theme — deep forest-night palette
+   Same token names as the light theme, so every utility
+   (bg-canvas, text-forest, border-line, ...) re-colours itself.
+   Toggled by <html data-theme="dark"> (see ThemeToggle).
+   ============================================================ */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --background: #0f1613;
+  --foreground: #e4eee4;
+
+  --color-canvas: #0f1613;
+  --color-cream: #0f1613;
+  --color-mist: #17211c;
+  --color-mint: #1d3a28;
+  --color-pine: #3a8353;
+  --color-pine-deep: #2f6e45;
+  --color-leaf: #6f9a5a;
+  --color-crop: #6f9a5a;
+  --color-straw: #3a3220;
+  --color-rice: #e5b84d;
+  --color-sky: #14303b;
+  --color-river: #4a9cc0;
+  --color-forest: #e4eee4;
+  --color-earth: #e4eee4;
+  --color-line: #28382e;
+  --color-gold: #e5b84d;
+  --color-muted: #9bb3a2;
+  --color-subtle: #131c17;
+
+  --color-surface: #18231d;
+  --color-pine-ink: #8fd1a4;
+  --color-skyband: #0d1a17;
+  --color-sky-ink: #8cc7e3;
+  --color-sky-deep: #bfe3f3;
+  --color-sky-line: #27505f;
+  --color-ready-line: #2c5a3d;
+  --color-pending-line: #5a4a1f;
+  --color-chip-pending: #3a2f14;
+  --color-rejected-line: #6b3535;
+  --color-rejected-deep: #f0a8a8;
+  --color-field-line: #35493c;
+  --color-placeholder: #6d8576;
+  --panel-edge: #3b5445;
+
+  --color-pending-bg: #3a2f14;
+  --color-pending-ink: #f0c36a;
+  --color-ready-bg: #1d3a28;
+  --color-ready-ink: #8fd1a4;
+  --color-received-bg: #1f2a24;
+  --color-received-ink: #aebfb2;
+  --color-rejected-bg: #3d1f1f;
+  --color-rejected-ink: #f0a0a0;
+
+  --shadow-subtle: 3px 3px 0 0 rgba(0, 0, 0, 0.35);
+  --shadow-card: 5px 5px 0 0 rgba(0, 0, 0, 0.4);
+  --shadow-raised: 7px 7px 0 0 rgba(0, 0, 0, 0.45);
+  --shadow-modal: 8px 8px 0 0 rgba(0, 0, 0, 0.55);
+}
+
+/* An element can opt out of dark mode with data-theme="light" (used for the
+   printable ID card and request slip, which are exported as images). */
+[data-theme='light'] {
+  color-scheme: light;
+  --color-canvas: #faf6eb;
+  --color-cream: #faf6eb;
+  --color-mist: #f3eddd;
+  --color-mint: #ddebd3;
+  --color-pine: #386b48;
+  --color-pine-deep: #2b5437;
+  --color-leaf: #8daf72;
+  --color-crop: #8daf72;
+  --color-straw: #eedcb5;
+  --color-sky: #dceef7;
+  --color-river: #83c5e2;
+  --color-forest: #354638;
+  --color-earth: #354638;
+  --color-line: #e3d9c1;
+  --color-muted: #5f6a58;
+  --color-subtle: #fdfaf1;
+  --color-surface: #ffffff;
+  --color-pine-ink: #386b48;
+  --color-sky-ink: #3a6478;
+  --color-sky-deep: #22414f;
+  --color-sky-line: #cfe7f1;
+  --color-ready-line: #c4e3d5;
+  --color-pending-line: #f2dfb6;
+  --color-chip-pending: #fbefd2;
+  --color-rejected-line: #f1cccc;
+  --color-rejected-deep: #7c3535;
+  --color-field-line: #c4d6cb;
+  --color-pending-bg: #fdf3de;
+  --color-pending-ink: #8a6116;
+  --color-ready-bg: #ddebd3;
+  --color-ready-ink: #386b48;
+  --color-received-bg: #f3eddd;
+  --color-received-ink: #55624b;
+  --color-rejected-bg: #fbecec;
+  --color-rejected-ink: #9c3f3f;
+  --shadow-subtle: 3px 3px 0 0 rgba(53, 70, 56, 0.1);
+  --shadow-card: 5px 5px 0 0 rgba(53, 70, 56, 0.13);
+  color: #354638;
 }
 
 * {
@@ -73,6 +200,7 @@ body {
   background-color: var(--color-canvas);
   color: var(--color-forest);
   font-family: var(--font-body);
+  transition: background-color 200ms ease, color 200ms ease;
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -213,7 +341,7 @@ textarea {
     line-height: 1rem;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--color-pine);
+    color: var(--color-pine-ink);
   }
 
   .body-lg {
@@ -287,12 +415,12 @@ textarea {
   }
 
   .input-base::placeholder {
-    color: #98aaa0;
+    color: var(--color-placeholder);
     font-weight: 400;
   }
 
   .input-base:hover {
-    border-color: #c4d6cb;
+    border-color: var(--color-field-line);
   }
 
   .input-base:focus {
@@ -332,7 +460,7 @@ textarea {
   /* Hard-edged panel used for the pixel theme's feature surfaces. */
   .pixel-panel {
     background: var(--color-canvas);
-    border: 2px solid var(--color-forest);
+    border: 2px solid var(--panel-edge);
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-card);
   }
@@ -438,7 +566,7 @@ textarea {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #f3eddd 25%, #dceef7 37%, #f3eddd 63%);
+  background: linear-gradient(90deg, var(--color-mist) 25%, var(--color-sky) 37%, var(--color-mist) 63%);
   background-size: 200% 100%;
   animation: im-shimmer 1.4s linear infinite;
 }
@@ -458,6 +586,10 @@ textarea {
 
   .hero-sky {
     background-image: linear-gradient(180deg, #c3e9f5 0%, #bce7f4 45%, #b6e3f2 100%);
+  }
+
+  :root[data-theme='dark'] .hero-sky {
+    background-image: linear-gradient(180deg, #0d1a17 0%, #10231e 45%, #12291f 100%);
   }
 }
 
@@ -724,7 +856,7 @@ textarea {
   width: 100%;
   max-width: none; /* base layer caps svg at 100%; keep the wave edge-to-edge */
   height: 22rem;
-  fill: #faf6eb;
+  fill: var(--color-canvas);
   opacity: 0.9;
   filter: drop-shadow(0 -10px 24px rgba(56, 107, 72, 0.1));
 }
@@ -753,6 +885,48 @@ textarea {
   }
 }
 
+
+/* ---- Dark theme: landing backdrop, hero artwork ---- */
+:root[data-theme='dark'] .flow-page {
+  background-image: linear-gradient(
+    180deg,
+    #0c1310 0%,
+    #101a15 24%,
+    #0d1511 48%,
+    #111c16 72%,
+    #0c1310 100%
+  );
+}
+
+:root[data-theme='dark'] .flow-blob {
+  opacity: 0.2;
+}
+
+:root[data-theme='dark'] .flow-silhouette {
+  filter: drop-shadow(0 -10px 24px rgba(0, 0, 0, 0.35));
+}
+
+/* The pixel countryside is painted in daylight colours; at night it is
+   dimmed and cooled so it reads as dusk instead of glaring. */
+.scene-art {
+  transition: filter 300ms ease;
+}
+
+:root[data-theme='dark'] .scene-art {
+  filter: brightness(0.5) saturate(0.85) hue-rotate(-6deg);
+}
+
+/* Smooth colour change when the theme button is pressed. */
+html.theme-fade,
+html.theme-fade *,
+html.theme-fade *::before,
+html.theme-fade *::after {
+  transition:
+    background-color 220ms ease,
+    border-color 220ms ease,
+    color 220ms ease,
+    fill 220ms ease !important;
+}
 
 @keyframes flow-drift {
   0% {

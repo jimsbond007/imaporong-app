@@ -59,7 +59,7 @@ export default async function ResidentAnnouncementsPage({
       <main className="page-shell py-5">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-pine transition hover:gap-2.5"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-pine-ink transition hover:gap-2.5"
         >
           <ArrowRightIcon className="h-4 w-4 rotate-180" />
           Back to overview
@@ -107,9 +107,9 @@ export default async function ResidentAnnouncementsPage({
 
         <section className="mt-6" aria-label="Announcement feed">
           {!feed.available ? (
-            <div className="rounded-[24px] border-2 border-line bg-white p-6 shadow-card sm:p-8">
+            <div className="rounded-[24px] border-2 border-line bg-surface p-6 shadow-card sm:p-8">
               <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky text-[#3a6478]">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky text-sky-ink">
                   <InfoIcon className="h-6 w-6" />
                 </span>
                 <div>
@@ -124,7 +124,7 @@ export default async function ResidentAnnouncementsPage({
           ) : feed.items.length === 0 ? (
             <EmptyState
               icon={<BellIcon className="h-5 w-5" />}
-              illustration={<PixelIcon name="news" size={80} className="text-pine" />}
+              illustration={<PixelIcon name="news" size={80} className="text-pine-ink" />}
               title={activeCategory ? `No ${activeCategory} announcements yet` : 'No announcements yet'}
               description={
                 activeCategory
@@ -178,7 +178,7 @@ function FilterChip({
       className={`inline-flex min-h-10 shrink-0 items-center rounded-xl border px-4 py-2 text-sm font-bold transition ${
         active
           ? 'border-pine bg-pine text-white'
-          : 'border-line bg-white text-muted hover:border-leaf hover:text-pine'
+          : 'border-line bg-surface text-muted hover:border-leaf hover:text-pine-ink'
       }`}
     >
       {children}

@@ -18,7 +18,7 @@ export function EmptyState({
       {illustration ? (
         <div className="mb-5 w-40 sm:w-48">{illustration}</div>
       ) : (
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-mint text-pine">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-mint text-pine-ink">
           {icon}
         </div>
       )}

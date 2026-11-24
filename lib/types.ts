@@ -51,3 +51,30 @@ export interface ServiceRequestRow {
   received_at?: string | null;
   resident_hidden_at?: string | null;
 }
+
+export type BarangayEventKind = 'event' | 'closure' | 'notice';
+
+export interface BarangayEvent {
+  id: string;
+  title: string;
+  description: string | null;
+  kind: BarangayEventKind;
+  start_date: string;
+  end_date: string;
+  created_at?: string;
+}
+
+export interface AppointmentRow {
+  id: string;
+  resident_id: string;
+  full_name: string;
+  contact_no: string | null;
+  purpose: string;
+  slip_number: string | null;
+  notes: string | null;
+  appt_date: string;
+  time_slot: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+  admin_note: string | null;
+  created_at: string;
+}

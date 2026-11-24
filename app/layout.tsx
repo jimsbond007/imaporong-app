@@ -33,11 +33,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  colorScheme: 'light',
+  colorScheme: 'light dark',
   themeColor: '#386B48',
   width: 'device-width',
   initialScale: 1,
 };
+
+// Runs before first paint so a saved (or system) dark preference never flashes light.
+const themeInitScript = `(function(){try{var k='imaporong-theme',t=localStorage.getItem(k);if(t!=='dark'&&t!=='light'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.dataset.theme=t;if(t==='dark'){var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#0F1613');}}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -47,8 +50,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${pixelSans.variable} ${lato.variable} h-full antialiased`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="flex min-h-full flex-col bg-canvas text-forest">{children}</body>
     </html>
   );

@@ -22,7 +22,7 @@ export function PageHeader({
 }) {
   return (
     <section
-      className={`relative overflow-hidden rounded-[26px] border-2 border-line bg-white p-6 shadow-card sm:p-8 ${className}`}
+      className={`relative overflow-hidden rounded-[26px] border-2 border-line bg-surface p-6 shadow-card sm:p-8 ${className}`}
     >
       <div
         aria-hidden="true"

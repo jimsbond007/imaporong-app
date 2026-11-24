@@ -37,7 +37,7 @@ export function ProfilePill({
           {name}
         </span>
         <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
-          <span className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-pine">
+          <span className="text-[0.625rem] font-bold uppercase tracking-[0.14em] text-pine-ink">
             {roleLabel}
           </span>
           {statusLabel && (

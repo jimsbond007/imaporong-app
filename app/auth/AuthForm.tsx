@@ -16,6 +16,7 @@ import {
   LockIcon,
 } from '@/components/ui/icons';
 import imapMark from '@/assets/illustrations/imap.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 type Mode = 'login' | 'register';
 
@@ -228,7 +229,7 @@ export function AuthForm({
         <div className="mx-auto my-auto w-full max-w-lg">
           <div className="mb-4 flex items-center justify-between gap-4 rounded-2xl border-2 border-line bg-cream/95 px-4 py-3 shadow-subtle sm:mb-5">
             <Link href="/" className="inline-flex min-w-0 items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-line bg-white p-1">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border-2 border-line bg-surface p-1">
                 <Image
                   src={imapMark}
                   alt="iMaporong"
@@ -245,12 +246,15 @@ export function AuthForm({
                 </span>
               </span>
             </Link>
-            <Link
-              href="/"
-              className="shrink-0 text-sm font-bold text-pine underline-offset-4 hover:underline"
-            >
-              Back to home
-            </Link>
+            <div className="flex shrink-0 items-center gap-3">
+              <Link
+                href="/"
+                className="text-sm font-bold text-pine-ink underline-offset-4 hover:underline"
+              >
+                Back to home
+              </Link>
+              <ThemeToggle className="!h-10 !w-10" />
+            </div>
           </div>
 
           <div className="rounded-[24px] border-2 border-earth/20 bg-cream p-5 shadow-raised sm:p-8">
@@ -278,7 +282,7 @@ export function AuthForm({
                 onClick={() => resetNoticeOnModeChange('login')}
                 className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${
                   mode === 'login'
-                    ? 'bg-white text-forest shadow-subtle'
+                    ? 'bg-surface text-forest shadow-subtle'
                     : 'text-muted hover:text-forest'
                 }`}
               >
@@ -291,7 +295,7 @@ export function AuthForm({
                 onClick={() => resetNoticeOnModeChange('register')}
                 className={`rounded-lg px-4 py-2.5 text-sm font-bold transition ${
                   mode === 'register'
-                    ? 'bg-white text-forest shadow-subtle'
+                    ? 'bg-surface text-forest shadow-subtle'
                     : 'text-muted hover:text-forest'
                 }`}
               >
@@ -304,8 +308,8 @@ export function AuthForm({
                 role={notice.type === 'error' ? 'alert' : 'status'}
                 className={`mb-5 rounded-2xl border p-3.5 text-sm font-semibold leading-relaxed ${
                   notice.type === 'error'
-                    ? 'border-[#f1cccc] bg-rejected-bg text-rejected-ink'
-                    : 'border-[#c4e3d5] bg-mint text-pine'
+                    ? 'border-rejected-line bg-rejected-bg text-rejected-ink'
+                    : 'border-ready-line bg-mint text-pine-ink'
                 }`}
               >
                 {notice.message}
@@ -427,7 +431,7 @@ export function AuthForm({
                     onClick={() => setShowPassword((value) => !value)}
                     aria-label={showPassword ? 'Hide password' : 'Show password'}
                     aria-pressed={showPassword}
-                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted transition hover:text-pine"
+                    className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-muted transition hover:text-pine-ink"
                   >
                     {showPassword ? (
                       <EyeOffIcon className="h-5 w-5" />
@@ -456,7 +460,7 @@ export function AuthForm({
             </form>
 
             <p className="body-sm mt-4 flex items-start gap-2">
-              <LockIcon className="mt-0.5 h-4 w-4 shrink-0 text-pine" />
+              <LockIcon className="mt-0.5 h-4 w-4 shrink-0 text-pine-ink" />
               Accounts are protected by Supabase authentication. Never share your password
               with anyone, including someone claiming to be barangay staff.
             </p>
@@ -467,7 +471,7 @@ export function AuthForm({
             <button
               type="button"
               onClick={() => resetNoticeOnModeChange(mode === 'login' ? 'register' : 'login')}
-              className="font-bold text-pine underline-offset-4 hover:underline"
+              className="font-bold text-pine-ink underline-offset-4 hover:underline"
             >
               {mode === 'login' ? 'Register here' : 'Sign in instead'}
             </button>

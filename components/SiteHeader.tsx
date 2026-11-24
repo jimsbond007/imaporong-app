@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { NAV_LINKS } from '@/lib/constants';
 import { buttonClasses } from '@/components/ui/Button';
 import { CloseIcon, MenuIcon } from '@/components/ui/icons';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { BarangayCalendar } from '@/components/calendar/BarangayCalendar';
 import imapMark from '@/assets/illustrations/imap.svg';
 
 export function SiteHeader() {
@@ -32,7 +34,7 @@ export function SiteHeader() {
       className={`sticky top-0 z-50 transition-colors duration-300 ${
         scrolled || open
           ? 'border-b-2 border-line/80 bg-cream/90 backdrop-blur-md'
-          : 'border-b-2 border-transparent bg-[#c3e9f5]'
+          : 'border-b-2 border-transparent bg-skyband'
       }`}
     >
       <div className="page-shell relative z-10 flex h-[72px] items-center justify-between gap-4">
@@ -60,7 +62,7 @@ export function SiteHeader() {
             <Link
               key={link.href}
               href={link.href}
-              className="rounded-xl px-4 py-2 text-sm font-bold text-forest/75 transition hover:bg-white/60 hover:text-pine"
+              className="rounded-xl px-4 py-2 text-sm font-bold text-forest/75 transition hover:bg-surface/60 hover:text-pine-ink"
             >
               {link.label}
             </Link>
@@ -68,9 +70,11 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <BarangayCalendar />
+          <ThemeToggle />
           <Link
             href="/auth"
-            className={`${buttonClasses('ghost', 'md')} text-forest hover:bg-white/60`}
+            className={`${buttonClasses('ghost', 'md')} text-forest hover:bg-surface/60`}
           >
             Sign In
           </Link>
@@ -79,16 +83,20 @@ export function SiteHeader() {
           </Link>
         </div>
 
-        <button
-          type="button"
-          className="rounded-xl border-2 border-earth/15 bg-cream/80 p-2.5 text-forest transition hover:bg-cream lg:hidden"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-          aria-expanded={open}
-          aria-controls="mobile-menu"
-          onClick={() => setOpen((value) => !value)}
-        >
-          {open ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <BarangayCalendar className="!h-10 !w-10" />
+          <ThemeToggle className="!h-10 !w-10" />
+          <button
+            type="button"
+            className="rounded-xl border-2 border-earth/15 bg-cream/80 p-2.5 text-forest transition hover:bg-cream"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            onClick={() => setOpen((value) => !value)}
+          >
+            {open ? <CloseIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (

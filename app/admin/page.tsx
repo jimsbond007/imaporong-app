@@ -46,6 +46,8 @@ import {
 } from '@/components/ui/icons';
 import type { Announcement, ResidentRow, ServiceRequestRow } from '@/lib/types';
 import imapMark from '@/assets/illustrations/imap.svg';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { BarangayCalendar } from '@/components/calendar/BarangayCalendar';
 
 type Tab = 'residents' | 'requests' | 'calendar' | 'announcements';
 type Feedback = { type: 'error' | 'success'; message: string } | null;
@@ -847,7 +849,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-mist/60">
-        <div className="h-[68px] border-b border-line bg-white" />
+        <div className="h-[68px] border-b border-line bg-surface" />
         <div className="page-shell py-10">
           <div className="skeleton h-8 w-72 rounded-full" />
           <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -864,7 +866,7 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen pb-16">
       {/* Staff header */}
-      <header className="sticky top-0 z-40 border-b-2 border-line bg-white">
+      <header className="sticky top-0 z-40 border-b-2 border-line bg-surface">
         <div className="page-shell flex h-[68px] items-center justify-between gap-3">
           <Link href="/admin" className="flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-mist p-1">
@@ -886,10 +888,20 @@ export default function AdminPage() {
           </Link>
 
           <div className="flex items-center gap-1.5">
-            <span className="hidden items-center gap-1.5 rounded-full border border-[#c4e3d5] bg-mint px-2.5 py-1.5 text-[0.6875rem] font-bold text-pine sm:inline-flex">
+            <span className="hidden items-center gap-1.5 rounded-full border border-ready-line bg-mint px-2.5 py-1.5 text-[0.6875rem] font-bold text-pine-ink sm:inline-flex">
               <ShieldCheckIcon className="h-3.5 w-3.5" />
               Administrator
             </span>
+            <Link
+              href="/admin/appointments"
+              aria-label="Appointments and calendar events"
+              className={`${buttonClasses('quiet', 'sm')} px-2.5 text-xs`}
+            >
+              <CalendarIcon className="h-4 w-4" />
+              <span>Appointments</span>
+            </Link>
+            <BarangayCalendar className="!h-10 !w-10" />
+            <ThemeToggle className="!h-10 !w-10" />
             <Link
               href="/dashboard"
               aria-label="Open resident view"
@@ -921,7 +933,7 @@ export default function AdminPage() {
               aria-current={activeTab === tab.key ? 'page' : undefined}
               className={`inline-flex min-w-[84px] flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition ${
                 activeTab === tab.key
-                  ? 'bg-mint text-pine'
+                  ? 'bg-mint text-pine-ink'
                   : 'text-muted hover:bg-mist hover:text-forest'
               }`}
             >
@@ -931,7 +943,7 @@ export default function AdminPage() {
                   <span
                     className={`rounded-full px-1.5 py-0.5 text-[0.625rem] font-extrabold ${
                       activeTab === tab.key
-                        ? 'bg-white text-pine'
+                        ? 'bg-surface text-pine-ink'
                         : 'bg-mist text-muted'
                     }`}
                   >
@@ -952,8 +964,8 @@ export default function AdminPage() {
             role={feedback.type === 'error' ? 'alert' : 'status'}
             className={`mb-5 flex items-start gap-2.5 rounded-2xl border p-3.5 text-sm font-semibold ${
               feedback.type === 'error'
-                ? 'border-[#f1cccc] bg-rejected-bg text-rejected-ink'
-                : 'border-[#c4e3d5] bg-mint text-pine'
+                ? 'border-rejected-line bg-rejected-bg text-rejected-ink'
+                : 'border-ready-line bg-mint text-pine-ink'
             }`}
           >
             {feedback.type === 'error' ? (
@@ -1132,33 +1144,33 @@ export default function AdminPage() {
               value: residents.length,
               note: `${pendingVerification.length} awaiting verification`,
               icon: <UsersIcon className="h-5 w-5" />,
-              tone: 'bg-mint text-pine',
+              tone: 'bg-mint text-pine-ink',
             },
             {
               label: 'Active requests',
               value: activeRequests.length,
               note: `${pendingRequests.length} pending review`,
               icon: <ClipboardIcon className="h-5 w-5" />,
-              tone: 'bg-sky text-[#3a6478]',
+              tone: 'bg-sky text-sky-ink',
             },
             {
               label: 'Ready for pickup',
               value: readyRequests.length,
               note: 'Waiting at the barangay desk',
               icon: <CheckCircleIcon className="h-5 w-5" />,
-              tone: 'bg-mint text-pine',
+              tone: 'bg-mint text-pine-ink',
             },
             {
               label: 'Published notices',
               value: announcements.filter((announcement) => announcement.published).length,
               note: `${announcements.length} total announcements`,
               icon: <BellIcon className="h-5 w-5" />,
-              tone: 'bg-[#fdf3de] text-[#8a6116]',
+              tone: 'bg-pending-bg text-pending-ink',
             },
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card"
+              className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-muted">
@@ -1182,7 +1194,7 @@ export default function AdminPage() {
 
         {/* ------------------------------------------------------------- Requests */}
         {activeTab === 'requests' && (
-          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-card">
+          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-surface shadow-card">
             <div className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="heading-2">Service request queue</h2>
@@ -1217,7 +1229,7 @@ export default function AdminPage() {
                       onClick={() => setRequestFilter(key)}
                       className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${
                         requestFilter === key
-                          ? 'bg-white text-forest shadow-subtle'
+                          ? 'bg-surface text-forest shadow-subtle'
                           : 'text-muted hover:text-forest'
                       }`}
                     >
@@ -1254,7 +1266,7 @@ export default function AdminPage() {
                           <Badge tone="sky">{request.service_type}</Badge>
                         </div>
                         <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-semibold text-muted">
-                          <span className="font-mono text-[0.6875rem] font-bold text-pine">
+                          <span className="font-mono text-[0.6875rem] font-bold text-pine-ink">
                             {getRequestSlipNumber(request)}
                           </span>
                           <span className="inline-flex items-center gap-1.5">
@@ -1310,7 +1322,7 @@ export default function AdminPage() {
 
         {/* ------------------------------------------------------------ Residents */}
         {activeTab === 'residents' && (
-          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-white shadow-card">
+          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-surface shadow-card">
             <div className="border-b border-line p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -1486,7 +1498,7 @@ export default function AdminPage() {
           <section className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.5fr]">
             <form
               onSubmit={saveAnnouncement}
-              className="h-fit rounded-[20px] border-2 border-line bg-white p-5 shadow-card lg:sticky lg:top-36"
+              className="h-fit rounded-[20px] border-2 border-line bg-surface p-5 shadow-card lg:sticky lg:top-36"
             >
               <div className="flex items-center justify-between gap-2">
                 <h2 className="heading-2">
@@ -1503,7 +1515,7 @@ export default function AdminPage() {
               </p>
 
               {!announcementsReady && (
-                <div className="mt-3 rounded-xl border border-[#f2dfb6] bg-pending-bg p-3 text-xs font-semibold leading-relaxed text-pending-ink">
+                <div className="mt-3 rounded-xl border border-pending-line bg-pending-bg p-3 text-xs font-semibold leading-relaxed text-pending-ink">
                   The announcements table is not available yet. Apply{' '}
                   <code className="font-mono">
                     20261105120000_security_hardening_and_announcements.sql
@@ -1607,7 +1619,7 @@ export default function AdminPage() {
                 {announcementError && (
                   <p
                     role="alert"
-                    className="rounded-xl border border-[#f1cccc] bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+                    className="rounded-xl border border-rejected-line bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
                   >
                     {announcementError}
                   </p>
@@ -1639,7 +1651,7 @@ export default function AdminPage() {
               </div>
 
               {announcements.length === 0 ? (
-                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card">
+                <div className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card">
                   <EmptyState
                     icon={<BellIcon className="h-5 w-5" />}
                     title="No announcements yet"
@@ -1650,7 +1662,7 @@ export default function AdminPage() {
                 announcements.map((announcement) => (
                   <article
                     key={announcement.id}
-                    className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card"
+                    className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card"
                   >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge tone={announcement.published ? 'green' : 'gold'}>
@@ -1695,7 +1707,7 @@ export default function AdminPage() {
 
         {/* -------------------------------------------------------------- Calendar */}
         {activeTab === 'calendar' && (
-          <section className="mt-5 rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+          <section className="mt-5 rounded-[20px] border-2 border-line bg-surface p-5 shadow-card sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="heading-2">Request calendar</h2>
@@ -1761,8 +1773,8 @@ export default function AdminPage() {
                     }}
                     className={`flex min-h-[64px] flex-col justify-between rounded-xl border p-2 text-left transition sm:min-h-[86px] ${
                       hasRequests
-                        ? 'border-[#c4e3d5] bg-mint/60 hover:bg-mint'
-                        : 'border-line bg-white hover:bg-subtle'
+                        ? 'border-ready-line bg-mint/60 hover:bg-mint'
+                        : 'border-line bg-surface hover:bg-subtle'
                     }`}
                     aria-label={`${day} ${currentDate.toLocaleString('en-PH', {
                       month: 'long',
@@ -1780,7 +1792,7 @@ export default function AdminPage() {
             </div>
 
             <p className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-muted">
-              <ClockIcon className="h-4 w-4 text-pine" />
+              <ClockIcon className="h-4 w-4 text-pine-ink" />
               Click a date to inspect the requests recorded that day.
             </p>
           </section>
@@ -1892,21 +1904,21 @@ export default function AdminPage() {
               </div>
             )}
 
-            <div className="rounded-xl border border-[#cfe7f1] bg-sky px-3.5 py-3">
-              <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-[#3a6478]">
+            <div className="rounded-xl border border-sky-line bg-sky px-3.5 py-3">
+              <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-sky-ink">
                 Purpose
               </p>
-              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-[#22414f]">
+              <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-sky-deep">
                 {selectedRequest.purpose || 'No purpose provided.'}
               </p>
             </div>
 
             {selectedRequest.status === 'rejected' && selectedRequest.rejection_reason && (
-              <div className="rounded-xl border border-[#f1cccc] bg-rejected-bg px-3.5 py-3">
+              <div className="rounded-xl border border-rejected-line bg-rejected-bg px-3.5 py-3">
                 <p className="text-[0.625rem] font-bold uppercase tracking-[0.1em] text-rejected-ink">
                   Rejection feedback sent to resident
                 </p>
-                <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-[#7c3535]">
+                <p className="mt-1 whitespace-pre-wrap break-words text-sm font-medium text-rejected-deep">
                   {selectedRequest.rejection_reason}
                 </p>
               </div>
@@ -1978,7 +1990,7 @@ export default function AdminPage() {
             {rejectionError && (
               <p
                 role="alert"
-                className="rounded-xl border border-[#f1cccc] bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+                className="rounded-xl border border-rejected-line bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
               >
                 {rejectionError}
               </p>
@@ -2009,7 +2021,7 @@ export default function AdminPage() {
       >
         {slipRequest && (
           <div className="rounded-xl border border-line bg-subtle p-3">
-            <div ref={slipRef} className="bg-white">
+            <div ref={slipRef} data-theme="light" className="bg-surface">
               <RequestSlip request={slipRequest} />
             </div>
           </div>
@@ -2018,7 +2030,7 @@ export default function AdminPage() {
 
       {/* Print-only slip copy */}
       {slipRequest && (
-        <div className="print-slip-area">
+        <div data-theme="light" className="print-slip-area">
           <RequestSlip request={slipRequest} />
         </div>
       )}
@@ -2053,7 +2065,7 @@ export default function AdminPage() {
                     <StatusBadge status={request.status} />
                   </div>
                   {request.status === 'rejected' && request.rejection_reason && (
-                    <p className="mt-2 rounded-lg border border-[#f1cccc] bg-rejected-bg p-2 text-xs font-medium leading-relaxed text-rejected-ink">
+                    <p className="mt-2 rounded-lg border border-rejected-line bg-rejected-bg p-2 text-xs font-medium leading-relaxed text-rejected-ink">
                       {request.rejection_reason}
                     </p>
                   )}
@@ -2173,7 +2185,7 @@ export default function AdminPage() {
             </select>
           </div>
           {editingResident && (
-            <div className="flex flex-col gap-2 rounded-xl border border-[#f1cccc] bg-rejected-bg/60 p-3.5 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2 rounded-xl border border-rejected-line bg-rejected-bg/60 p-3.5 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs font-semibold leading-relaxed text-rejected-ink">
                 Removing a record does not delete the resident&apos;s portal login.
               </p>

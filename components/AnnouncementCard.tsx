@@ -44,7 +44,7 @@ export function AnnouncementCard({
 
   return (
     <article
-      className={`interactive-card flex h-full flex-col rounded-[20px] border-2 border-line bg-white p-5 shadow-subtle sm:p-6 ${className}`}
+      className={`interactive-card flex h-full flex-col rounded-[20px] border-2 border-line bg-surface p-5 shadow-subtle sm:p-6 ${className}`}
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={categoryTone(category)}>{category}</Badge>

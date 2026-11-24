@@ -35,25 +35,25 @@ type Tone = {
 
 const TONES: Record<string, Tone> = {
   program: {
-    banner: 'from-[#d3e8c4] via-[#a9d19c] to-[#6aa57a]',
-    chip: 'bg-mint text-pine',
+    banner: 'from-[#d3e8c4] via-[#a9d19c] to-[#6aa57a] dark:from-[#1d3a28] dark:via-[#25523a] dark:to-[#2f6e45]',
+    chip: 'bg-mint text-pine-ink',
     icon: <HandHeartIcon className="h-8 w-8" />,
   },
   schedule: {
-    banner: 'from-[#eaf6fb] via-[#b4dcee] to-[#7dbcd9]',
-    chip: 'bg-sky text-[#3a6478]',
+    banner: 'from-[#eaf6fb] via-[#b4dcee] to-[#7dbcd9] dark:from-[#14303b] dark:via-[#1c4757] dark:to-[#27607a]',
+    chip: 'bg-sky text-sky-ink',
     icon: <CalendarIcon className="h-8 w-8" />,
   },
   advisory: {
-    banner: 'from-[#fdf3da] via-[#f1d88f] to-[#e5b84d]',
-    chip: 'bg-[#fbefd2] text-[#8a6116]',
+    banner: 'from-[#fdf3da] via-[#f1d88f] to-[#e5b84d] dark:from-[#3a2f14] dark:via-[#5a4720] dark:to-[#7a6128]',
+    chip: 'bg-chip-pending text-pending-ink',
     icon: <BellIcon className="h-8 w-8" />,
   },
 };
 
 const FALLBACK: Tone = {
-  banner: 'from-[#e4efd6] via-[#bcd7a6] to-[#8daf72]',
-  chip: 'bg-mint text-pine',
+  banner: 'from-[#e4efd6] via-[#bcd7a6] to-[#8daf72] dark:from-[#1d3a28] dark:via-[#2a4a35] dark:to-[#3a6148]',
+  chip: 'bg-mint text-pine-ink',
   icon: <SparkleIcon className="h-8 w-8" />,
 };
 
@@ -108,12 +108,12 @@ function FeedPost({ item }: { item: FeedItem }) {
   const image = imageFor(item.title);
 
   return (
-    <article className="group relative flex h-full flex-col rounded-[26px] border-2 border-white/80 bg-white/45 p-2 shadow-[7px_7px_0_0_rgba(53,70,56,0.13)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-[9px_9px_0_0_rgba(53,70,56,0.15)]">
-      <div className="flex flex-1 flex-col overflow-hidden rounded-[19px] border border-earth/10 bg-white">
+    <article className="group relative flex h-full flex-col rounded-[26px] border-2 border-surface/80 bg-surface/45 p-2 shadow-[7px_7px_0_0_rgba(53,70,56,0.13)] backdrop-blur-md transition duration-300 hover:-translate-y-0.5 hover:shadow-[9px_9px_0_0_rgba(53,70,56,0.15)]">
+      <div className="flex flex-1 flex-col overflow-hidden rounded-[19px] border border-earth/10 bg-surface">
         {/* Post header: avatar, poster, time, category */}
         <header className="flex items-center gap-3 px-4 pb-2.5 pt-3.5">
           <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-rice via-leaf to-river p-[2.5px]">
-            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-white">
+            <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full bg-surface">
               <Image
                 src="/maporong-logo.png"
                 alt=""
@@ -151,7 +151,7 @@ function FeedPost({ item }: { item: FeedItem }) {
           {image ? (
             <div
               className={`relative h-32 overflow-hidden rounded-[20px] border border-earth/10 ${
-                image.fit === 'contain' ? 'bg-white' : 'bg-mist'
+                image.fit === 'contain' ? 'bg-surface' : 'bg-mist'
               }`}
             >
               <Image
@@ -168,11 +168,11 @@ function FeedPost({ item }: { item: FeedItem }) {
               aria-hidden="true"
               className={`relative flex h-32 items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br ${tone.banner}`}
             >
-              <span className="absolute -left-6 top-4 h-28 w-28 rounded-full bg-white/35 blur-sm" />
+              <span className="absolute -left-6 top-4 h-28 w-28 rounded-full bg-surface/35 blur-sm" />
               <span className="absolute -bottom-8 -right-4 h-32 w-32 rounded-[36px] bg-white/25 [transform:rotate(18deg)]" />
-              <span className="absolute left-1/3 top-3 h-3 w-3 rounded-sm bg-white/70" />
-              <span className="absolute bottom-5 right-1/3 h-2 w-2 rounded-sm bg-white/60" />
-              <span className="relative flex h-16 w-16 items-center justify-center rounded-[22px] border-2 border-white/70 bg-white/45 text-forest shadow-subtle backdrop-blur-sm">
+              <span className="absolute left-1/3 top-3 h-3 w-3 rounded-sm bg-surface/70" />
+              <span className="absolute bottom-5 right-1/3 h-2 w-2 rounded-sm bg-surface/60" />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-[22px] border-2 border-surface/70 bg-surface/45 text-forest shadow-subtle backdrop-blur-sm">
                 {tone.icon}
               </span>
             </div>
@@ -191,7 +191,7 @@ function FeedPost({ item }: { item: FeedItem }) {
 
           <Link
             href="/dashboard/announcements"
-            className="inline-flex items-center gap-1.5 rounded-full bg-forest px-4 py-2 text-xs font-bold text-white shadow-subtle transition hover:gap-2.5 hover:bg-pine-deep"
+            className="inline-flex items-center gap-1.5 rounded-full bg-ink-solid px-4 py-2 text-xs font-bold text-white shadow-subtle transition hover:gap-2.5 hover:bg-pine-deep"
           >
             Read update
             <ArrowRightIcon className="h-3.5 w-3.5" />

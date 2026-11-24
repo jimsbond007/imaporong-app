@@ -3,10 +3,10 @@ import type { ReactNode } from 'react';
 export type RequestStatus = 'pending' | 'ready' | 'received' | 'rejected' | string;
 
 const statusStyles: Record<string, string> = {
-  pending: 'bg-pending-bg text-pending-ink border-[#f2dfb6]',
-  ready: 'bg-ready-bg text-ready-ink border-[#c4e3d5]',
+  pending: 'bg-pending-bg text-pending-ink border-pending-line',
+  ready: 'bg-ready-bg text-ready-ink border-ready-line',
   received: 'bg-received-bg text-received-ink border-line',
-  rejected: 'bg-rejected-bg text-rejected-ink border-[#f1cccc]',
+  rejected: 'bg-rejected-bg text-rejected-ink border-rejected-line',
 };
 
 const statusLabels: Record<string, string> = {
@@ -34,10 +34,10 @@ export type BadgeTone = 'neutral' | 'green' | 'sky' | 'gold' | 'danger';
 
 const tones: Record<BadgeTone, string> = {
   neutral: 'bg-mist text-muted border-line',
-  green: 'bg-mint text-pine border-[#c4e3d5]',
-  sky: 'bg-sky text-[#3a6478] border-[#cfe7f1]',
-  gold: 'bg-[#fdf3de] text-[#8a6116] border-[#f2dfb6]',
-  danger: 'bg-rejected-bg text-rejected-ink border-[#f1cccc]',
+  green: 'bg-mint text-pine-ink border-ready-line',
+  sky: 'bg-sky text-sky-ink border-sky-line',
+  gold: 'bg-pending-bg text-pending-ink border-pending-line',
+  danger: 'bg-rejected-bg text-rejected-ink border-rejected-line',
 };
 
 export function Badge({

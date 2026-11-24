@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { buttonClasses } from '@/components/ui/Button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { BarangayCalendar } from '@/components/calendar/BarangayCalendar';
 import imapMark from '@/assets/illustrations/imap.svg';
 import {
   BellIcon,
@@ -48,7 +50,7 @@ export function PortalHeader({
   const linkClass = (key: PortalSection) =>
     `flex min-w-[92px] flex-col items-center justify-center gap-1 whitespace-nowrap rounded-xl px-3 py-2 text-xs font-bold transition ${
       active === key
-        ? 'bg-mint text-pine'
+        ? 'bg-mint text-pine-ink'
         : 'text-muted hover:bg-mist hover:text-forest'
     }`;
 
@@ -72,7 +74,7 @@ export function PortalHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b-2 border-line bg-white">
+      <header className="sticky top-0 z-40 border-b-2 border-line bg-surface">
         <div className="page-shell relative z-10 flex h-[68px] items-center justify-between gap-3">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-line bg-mist p-1">
@@ -99,12 +101,12 @@ export function PortalHeader({
               title={isVerified ? 'Verified resident' : 'Verification pending'}
             >
               <ShieldCheckIcon
-                className={`h-3.5 w-3.5 ${isVerified ? 'text-pine' : 'text-[#8a6116]'}`}
+                className={`h-3.5 w-3.5 ${isVerified ? 'text-pine-ink' : 'text-pending-ink'}`}
               />
               {isVerified ? 'Verified' : 'Pending verification'}
             </span>
 
-            <div className="flex items-center gap-2 rounded-full border border-line bg-white py-1 pl-1 pr-2">
+            <div className="flex items-center gap-2 rounded-full border border-line bg-surface py-1 pl-1 pr-2">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-pine text-xs font-extrabold text-white">
                 {initials}
               </span>
@@ -112,6 +114,9 @@ export function PortalHeader({
                 {name}
               </span>
             </div>
+
+            <BarangayCalendar className="!h-10 !w-10" />
+            <ThemeToggle className="!h-10 !w-10" />
 
             <button
               type="button"
@@ -182,7 +187,7 @@ export function PortalHeader({
       {/* Mobile navigation: one compact bar instead of a row of buttons */}
       <nav
         aria-label="Resident portal quick navigation"
-        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-line bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         <div
           className={`mx-auto grid max-w-lg ${
@@ -198,7 +203,7 @@ export function PortalHeader({
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 px-1 pb-1.5 pt-2 text-[0.625rem] font-bold transition ${
-                  isActive ? 'text-pine' : 'text-muted hover:text-forest'
+                  isActive ? 'text-pine-ink' : 'text-muted hover:text-forest'
                 }`}
               >
                 <span
@@ -219,7 +224,7 @@ export function PortalHeader({
               onClick={onOpenId}
               aria-current={active === 'id' ? 'page' : undefined}
               className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 px-1 pb-1.5 pt-2 text-[0.625rem] font-bold transition ${
-                active === 'id' ? 'text-pine' : 'text-muted hover:text-forest'
+                active === 'id' ? 'text-pine-ink' : 'text-muted hover:text-forest'
               }`}
             >
               <span
@@ -236,7 +241,7 @@ export function PortalHeader({
               href="/dashboard#my-id"
               aria-current={active === 'id' ? 'page' : undefined}
               className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 px-1 pb-1.5 pt-2 text-[0.625rem] font-bold transition ${
-                active === 'id' ? 'text-pine' : 'text-muted hover:text-forest'
+                active === 'id' ? 'text-pine-ink' : 'text-muted hover:text-forest'
               }`}
             >
               <span
@@ -255,7 +260,7 @@ export function PortalHeader({
               href="/admin"
               aria-current={active === 'admin' ? 'page' : undefined}
               className={`flex min-h-[58px] flex-col items-center justify-center gap-0.5 px-1 pb-1.5 pt-2 text-[0.625rem] font-bold transition ${
-                active === 'admin' ? 'text-pine' : 'text-muted hover:text-forest'
+                active === 'admin' ? 'text-pine-ink' : 'text-muted hover:text-forest'
               }`}
             >
               <span

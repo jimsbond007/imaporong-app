@@ -38,7 +38,7 @@ export function ServiceSearch() {
           event.preventDefault();
           if (results[0]) scrollToService(results[0].slug);
         }}
-        className="flex items-center gap-2 rounded-xl border-2 border-line bg-white p-1.5 pl-4 shadow-card"
+        className="flex items-center gap-2 rounded-xl border-2 border-line bg-surface p-1.5 pl-4 shadow-card"
       >
         <SearchIcon className="h-5 w-5 shrink-0 text-muted" />
         <label htmlFor="service-search" className="sr-only">
@@ -68,7 +68,7 @@ export function ServiceSearch() {
       </form>
 
       {open && query.trim() && (
-        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border-2 border-line bg-white shadow-raised">
+        <div className="absolute inset-x-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-2xl border-2 border-line bg-surface shadow-raised">
           {results.length === 0 ? (
             <p className="px-4 py-4 text-sm font-semibold text-muted">
               No matching service. Try “clearance”, “indigency”, or “business”.
@@ -87,7 +87,7 @@ export function ServiceSearch() {
                     }}
                     className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-mist"
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint text-pine">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint text-pine-ink">
                       <ServiceIcon icon={service.icon} className="h-4.5 w-4.5" />
                     </span>
                     <span className="min-w-0">

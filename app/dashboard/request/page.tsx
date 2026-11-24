@@ -288,7 +288,7 @@ export default function RequestForm() {
   if (profileLoading) {
     return (
       <div>
-        <div className="h-[68px] border-b border-line bg-white" />
+        <div className="h-[68px] border-b border-line bg-surface" />
         <div className="page-shell py-10">
           <div className="skeleton h-8 w-64 rounded-full" />
           <div className="mt-6 grid gap-4 lg:grid-cols-3">
@@ -317,17 +317,17 @@ export default function RequestForm() {
       <main className="page-shell py-5">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-pine transition hover:gap-2.5"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-pine-ink transition hover:gap-2.5"
         >
           <ArrowRightIcon className="h-4 w-4 rotate-180" />
           Back to overview
         </Link>
 
         {submittedSlip ? (
-          <section className="animate-fade-up mx-auto mt-6 max-w-xl rounded-[24px] border-2 border-line bg-white p-6 text-center shadow-card sm:p-8">
+          <section className="animate-fade-up mx-auto mt-6 max-w-xl rounded-[24px] border-2 border-line bg-surface p-6 text-center shadow-card sm:p-8">
             <div className="relative mx-auto flex h-36 w-36 items-center justify-center rounded-[22px] border-2 border-line bg-mint shadow-subtle">
-              <PixelIcon name="rice" size={76} className="text-pine" />
-              <span className="absolute -bottom-2 -right-1 flex h-11 w-11 items-center justify-center rounded-xl border-2 border-white bg-cream text-pine shadow-subtle">
+              <PixelIcon name="rice" size={76} className="text-pine-ink" />
+              <span className="absolute -bottom-2 -right-1 flex h-11 w-11 items-center justify-center rounded-xl border-2 border-white bg-cream text-pine-ink shadow-subtle">
                 <CheckCircleIcon className="h-6 w-6" />
               </span>
             </div>
@@ -340,7 +340,7 @@ export default function RequestForm() {
               <p className="text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-muted">
                 Request slip number
               </p>
-              <p className="mt-1 font-mono text-2xl font-extrabold tracking-tight text-pine">
+              <p className="mt-1 font-mono text-2xl font-extrabold tracking-tight text-pine-ink">
                 {submittedSlip}
               </p>
             </div>
@@ -367,7 +367,7 @@ export default function RequestForm() {
                   address: previous.address,
                 }));
               }}
-              className="mt-5 text-sm font-bold text-pine underline-offset-4 hover:underline"
+              className="mt-5 text-sm font-bold text-pine-ink underline-offset-4 hover:underline"
             >
               Submit another request
             </button>
@@ -389,7 +389,7 @@ export default function RequestForm() {
 
             <form onSubmit={handleSubmit} className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
               <div className="space-y-4">
-                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                <section className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card sm:p-6">
                   <h2 className="heading-3">1. Choose a document</h2>
                   <p className="body-sm mt-1">
                     Select the certificate or clearance you need.
@@ -404,7 +404,7 @@ export default function RequestForm() {
                           className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 transition ${
                             selected
                               ? 'border-pine bg-mint/60 ring-1 ring-pine'
-                              : 'border-line bg-white hover:border-leaf hover:bg-subtle'
+                              : 'border-line bg-surface hover:border-leaf hover:bg-subtle'
                           }`}
                         >
                           <input
@@ -417,7 +417,7 @@ export default function RequestForm() {
                           />
                           <span
                             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-                              selected ? 'bg-pine text-white' : 'bg-mint text-pine'
+                              selected ? 'bg-pine text-white' : 'bg-mint text-pine-ink'
                             }`}
                           >
                             <ServiceIcon icon={service.icon} className="h-4.5 w-4.5" />
@@ -434,7 +434,7 @@ export default function RequestForm() {
                             className={`ml-auto mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
                               selected
                                 ? 'border-pine bg-pine text-white'
-                                : 'border-[#c4d6cb] bg-white text-transparent'
+                                : 'border-field-line bg-surface text-transparent'
                             }`}
                           >
                             <CheckCircleIcon className="h-3 w-3" />
@@ -445,7 +445,7 @@ export default function RequestForm() {
                   </div>
                 </section>
 
-                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                <section className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card sm:p-6">
                   <h2 className="heading-3">2. Request details</h2>
                   <p className="body-sm mt-1">
                     Tell the barangay why you need this document.
@@ -487,7 +487,7 @@ export default function RequestForm() {
                   </div>
                 </section>
 
-                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                <section className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card sm:p-6">
                   <h2 className="heading-3">3. Personal information</h2>
                   <p className="body-sm mt-1">
                     Prefilled from your resident record. Correct anything that is outdated.
@@ -573,7 +573,7 @@ export default function RequestForm() {
                   </div>
                 </section>
 
-                <section className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card sm:p-6">
+                <section className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card sm:p-6">
                   <h2 className="heading-3">4. Additional details</h2>
                   <p className="body-sm mt-1">
                     Optional fields that help staff prepare the document correctly.
@@ -656,7 +656,7 @@ export default function RequestForm() {
                 {feedback && (
                   <div
                     role="alert"
-                    className="flex items-start gap-2.5 rounded-2xl border border-[#f1cccc] bg-rejected-bg p-4 text-sm font-semibold text-rejected-ink"
+                    className="flex items-start gap-2.5 rounded-2xl border border-rejected-line bg-rejected-bg p-4 text-sm font-semibold text-rejected-ink"
                   >
                     <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>{feedback}</span>
@@ -666,11 +666,11 @@ export default function RequestForm() {
 
               {/* Summary rail */}
               <aside className="lg:sticky lg:top-32 lg:self-start">
-                <div className="rounded-[20px] border-2 border-line bg-white p-5 shadow-card">
+                <div className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card">
                   <p className="eyebrow">Request summary</p>
 
                   <div className="mt-3 flex items-start gap-3 rounded-2xl border border-line bg-subtle p-3.5">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
                       <ServiceIcon icon={selectedService.icon} className="h-5 w-5" />
                     </span>
                     <div className="min-w-0">
@@ -699,7 +699,7 @@ export default function RequestForm() {
                     <div className="flex items-start justify-between gap-3">
                       <dt className="font-semibold text-muted">Status</dt>
                       <dd>
-                        <span className="rounded-full border border-[#f2dfb6] bg-pending-bg px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-pending-ink">
+                        <span className="rounded-full border border-pending-line bg-pending-bg px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-wide text-pending-ink">
                           Pending review
                         </span>
                       </dd>
@@ -713,7 +713,7 @@ export default function RequestForm() {
                       'Bring a valid ID when claiming the document.',
                     ].map((line) => (
                       <li key={line} className="flex items-start gap-2 text-xs font-medium text-muted">
-                        <CheckCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
+                        <CheckCircleIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine-ink" />
                         {line}
                       </li>
                     ))}
@@ -729,12 +729,12 @@ export default function RequestForm() {
                   </button>
 
                   <p className="mt-3 flex items-start gap-1.5 text-[0.6875rem] font-medium leading-relaxed text-muted">
-                    <LockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine" />
+                    <LockIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-pine-ink" />
                     Your details are visible only to you and authorized barangay staff.
                   </p>
                 </div>
 
-                <div className="mt-3 flex items-start gap-2 rounded-2xl border border-[#cfe7f1] bg-sky p-3.5 text-xs font-semibold leading-relaxed text-[#3a6478]">
+                <div className="mt-3 flex items-start gap-2 rounded-2xl border border-sky-line bg-sky p-3.5 text-xs font-semibold leading-relaxed text-sky-ink">
                   <InfoIcon className="mt-0.5 h-4 w-4 shrink-0" />
                   Requirements and processing time are confirmed by barangay staff when
                   your request is reviewed.

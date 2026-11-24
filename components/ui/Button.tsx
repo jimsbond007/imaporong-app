@@ -27,15 +27,15 @@ const base =
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-pine text-white hover:bg-pine-deep shadow-subtle hover:shadow-card',
   secondary:
-    'bg-white text-forest border border-line hover:border-leaf hover:bg-mist shadow-subtle',
+    'bg-surface text-forest border border-line hover:border-leaf hover:bg-mist shadow-subtle',
   ghost: 'bg-transparent text-forest hover:bg-mint',
   quiet:
-    'bg-white text-muted border border-line hover:border-leaf hover:text-forest',
+    'bg-surface text-muted border border-line hover:border-leaf hover:text-forest',
   dangerQuiet:
-    'bg-white text-muted border border-line hover:border-[#f1cccc] hover:bg-rejected-bg hover:text-rejected-ink',
+    'bg-surface text-muted border border-line hover:border-rejected-line hover:bg-rejected-bg hover:text-rejected-ink',
   danger: 'bg-[#9c3f3f] text-white hover:bg-[#853333] shadow-subtle',
   dangerSoft:
-    'bg-rejected-bg text-rejected-ink border border-[#f1cccc] hover:bg-[#f7dede]',
+    'bg-rejected-bg text-rejected-ink border border-rejected-line hover:bg-rejected-line/60',
   gold: 'bg-gold text-[#4a3a12] hover:bg-[#efbb60] shadow-subtle',
 };
 

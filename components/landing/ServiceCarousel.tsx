@@ -26,7 +26,7 @@ export function ServiceCarousel() {
           type="button"
           onClick={() => scroll(-1)}
           aria-label="Scroll services left"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-line bg-white text-forest transition hover:border-leaf hover:bg-mist"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-line bg-surface text-forest transition hover:border-leaf hover:bg-mist"
         >
           <ChevronLeftIcon className="h-5 w-5" />
         </button>
@@ -34,7 +34,7 @@ export function ServiceCarousel() {
           type="button"
           onClick={() => scroll(1)}
           aria-label="Scroll services right"
-          className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-line bg-white text-forest transition hover:border-leaf hover:bg-mist"
+          className="flex h-10 w-10 items-center justify-center rounded-xl border-2 border-line bg-surface text-forest transition hover:border-leaf hover:bg-mist"
         >
           <ChevronRightIcon className="h-5 w-5" />
         </button>
@@ -51,10 +51,10 @@ export function ServiceCarousel() {
           <article
             key={service.slug}
             id={`service-${service.slug}`}
-            className="interactive-card group flex w-[264px] shrink-0 snap-start scroll-mt-28 flex-col rounded-[20px] border-2 border-line bg-white p-5 shadow-subtle sm:w-[300px]"
+            className="interactive-card group flex w-[264px] shrink-0 snap-start scroll-mt-28 flex-col rounded-[20px] border-2 border-line bg-surface p-5 shadow-subtle sm:w-[300px]"
           >
             <div className="flex items-start justify-between gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mint text-pine">
+              <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-mint text-pine-ink">
                 <ServiceIcon icon={service.icon} className="h-5.5 w-5.5" />
               </span>
               <span className="text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">
@@ -67,7 +67,7 @@ export function ServiceCarousel() {
 
             <Link
               href="/auth"
-              className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-pine transition group-hover:gap-2.5"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-pine-ink transition group-hover:gap-2.5"
             >
               Request this document
               <ArrowRightIcon className="h-4 w-4" />

@@ -23,7 +23,7 @@ const SHOWCASE = [
     href: '/#announcements',
     Icon: BellIcon,
     surface: 'from-[#d3e8c4] via-[#bcd9a6] to-[#8fbf86]',
-    badge: 'bg-white/70 text-pine',
+    badge: 'bg-surface/70 text-pine-ink',
   },
   {
     title: 'Request a Document',
@@ -37,7 +37,7 @@ const SHOWCASE = [
     href: '/dashboard/request',
     Icon: ClipboardIcon,
     surface: 'from-[#fdf3da] via-[#f6e3b4] to-[#e8c97a]',
-    badge: 'bg-white/70 text-[#8a6116]',
+    badge: 'bg-surface/70 text-pending-ink',
   },
   {
     title: 'Calendar of Activities',
@@ -51,7 +51,7 @@ const SHOWCASE = [
     href: '/#announcements',
     Icon: CalendarIcon,
     surface: 'from-[#eaf6fb] via-sky to-[#9fd1e8]',
-    badge: 'bg-white/70 text-[#3a6478]',
+    badge: 'bg-surface/70 text-sky-ink',
   },
   {
     title: 'Community Map',
@@ -65,7 +65,7 @@ const SHOWCASE = [
     href: '/#community',
     Icon: MapPinIcon,
     surface: 'from-[#e4efd6] via-[#bcd7a6] to-[#8daf72]',
-    badge: 'bg-white/70 text-pine',
+    badge: 'bg-surface/70 text-pine-ink',
   },
 ];
 
@@ -153,9 +153,9 @@ export function ServiceShowcase() {
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-forest/85 via-forest/15 to-transparent"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-ink-solid/85 via-ink-solid/15 to-transparent"
         />
-        <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-white/70 bg-white/85 text-pine shadow-subtle">
+        <span className="relative flex h-12 w-12 items-center justify-center rounded-2xl border-2 border-surface/70 bg-surface/85 text-pine-ink shadow-subtle">
           <Icon className="h-6 w-6" />
         </span>
         <span className="relative mt-auto text-left">
