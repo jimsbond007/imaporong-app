@@ -916,6 +916,20 @@ textarea {
   filter: brightness(0.5) saturate(0.85) hue-rotate(-6deg);
 }
 
+/* ---- Signed-in screens: fixed sky + countryside backdrop ---- */
+.portal-sky {
+  background-image: linear-gradient(180deg, #c3e9f5 0%, #d8edea 42%, #eef3df 100%);
+}
+
+.portal-scene {
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 38%);
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 38%);
+}
+
+:root[data-theme='dark'] .portal-sky {
+  background-image: linear-gradient(180deg, #0b1714 0%, #0e1d19 50%, #101a15 100%);
+}
+
 /* Smooth colour change when the theme button is pressed. */
 html.theme-fade,
 html.theme-fade *,

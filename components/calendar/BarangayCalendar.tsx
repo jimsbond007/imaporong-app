@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabase';
 import { buttonClasses } from '@/components/ui/Button';
@@ -14,12 +14,16 @@ import {
   ChevronRightIcon,
   ClockIcon,
   CloseIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
 } from '@/components/ui/icons';
 import {
   addDays,
   daysInMonth,
   formatLong,
   formatRange,
+  formatShort,
   hourInManila,
   keyOf,
   MONTHS,
@@ -46,7 +50,9 @@ import {
   OFFICE_HOURS_LABEL,
   SLOT_CAPACITY,
 } from '@/lib/appointments';
-import type { AppointmentRow, BarangayEvent } from '@/lib/types';
+import type { AppointmentRow, BarangayEvent, BarangayEventKind } from '@/lib/types';
+
+const EVENT_FIELDS = 'id, title, description, kind, start_date, end_date';
 
 const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -70,7 +76,7 @@ const EVENT_LABEL: Record<BarangayEvent['kind'], string> = {
 };
 
 type Clock = { today: string; hour: number };
-type View = 'calendar' | 'book' | 'done';
+type View = 'calendar' | 'book' | 'done' | 'edit';
 
 /** Why a day cannot be booked, or null when it can. */
 function bookingBlocker(key: string, clock: Clock, events: BarangayEvent[]): string | null {
@@ -89,7 +95,22 @@ function bookingBlocker(key: string, clock: Clock, events: BarangayEvent[]): str
   return null;
 }
 
-export function BarangayCalendar({ className = '' }: { className?: string }) {
+/**
+ * Retractable barangay calendar.
+ *
+ * Residents see holidays and barangay events and can book a walk-in
+ * appointment. With `editable` (staff workspace / admin) the same calendar
+ * becomes an editor: staff can add, change and delete events directly on the
+ * dates. The database policies only accept those writes from admins, so the
+ * flag is a convenience for the UI and not the security boundary.
+ */
+export function BarangayCalendar({
+  className = '',
+  editable = false,
+}: {
+  className?: string;
+  editable?: boolean;
+}) {
   const pathname = usePathname();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -118,6 +139,83 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [booked, setBooked] = useState<AppointmentRow | null>(null);
+
+  // Event editor (staff only)
+  const [editId, setEditId] = useState<string | null>(null);
+  const [evTitle, setEvTitle] = useState('');
+  const [evKind, setEvKind] = useState<BarangayEventKind>('event');
+  const [evStart, setEvStart] = useState('');
+  const [evEnd, setEvEnd] = useState('');
+  const [evDesc, setEvDesc] = useState('');
+  const [evSaving, setEvSaving] = useState(false);
+  const [evError, setEvError] = useState('');
+  const [evConfirmDelete, setEvConfirmDelete] = useState(false);
+
+  const startEvent = (existing: BarangayEvent | null, dateKey: string) => {
+    setEditId(existing?.id ?? null);
+    setEvTitle(existing?.title ?? '');
+    setEvKind(existing?.kind ?? 'event');
+    setEvStart(existing?.start_date ?? dateKey);
+    setEvEnd(existing?.end_date ?? '');
+    setEvDesc(existing?.description ?? '');
+    setEvError('');
+    setEvConfirmDelete(false);
+    setView('edit');
+  };
+
+  const saveEvent = async (event: FormEvent) => {
+    event.preventDefault();
+    setEvError('');
+    if (evTitle.trim().length < 3) return setEvError('Give the entry a title (at least 3 letters).');
+    if (!evStart) return setEvError('Choose a start date.');
+    const end = evEnd || evStart;
+    if (end < evStart) return setEvError('The end date cannot be before the start date.');
+
+    const payload = {
+      title: evTitle.trim(),
+      kind: evKind,
+      start_date: evStart,
+      end_date: end,
+      description: evDesc.trim() || null,
+    };
+
+    setEvSaving(true);
+    const result = editId
+      ? await supabase.from('barangay_events').update(payload).eq('id', editId).select(EVENT_FIELDS).single()
+      : await supabase.from('barangay_events').insert(payload).select(EVENT_FIELDS).single();
+    setEvSaving(false);
+
+    if (result.error || !result.data) {
+      setEvError(
+        /relation .* does not exist|schema cache/i.test(result.error?.message ?? '')
+          ? 'The events table is missing. Run the latest database migration first.'
+          : (result.error?.message ?? 'We could not save this entry.'),
+      );
+      return;
+    }
+
+    const saved = result.data as BarangayEvent;
+    setEvents((list) =>
+      (editId ? list.map((item) => (item.id === editId ? saved : item)) : [...list, saved]).sort((a, b) =>
+        a.start_date.localeCompare(b.start_date),
+      ),
+    );
+    setEventsOnline(true);
+    const { year, month } = parseKey(saved.start_date);
+    setCursor({ year, month });
+    setSelected(saved.start_date);
+    setView('calendar');
+  };
+
+  const deleteEvent = async () => {
+    if (!editId) return;
+    setEvSaving(true);
+    const { error } = await supabase.from('barangay_events').delete().eq('id', editId);
+    setEvSaving(false);
+    if (error) return setEvError(error.message);
+    setEvents((list) => list.filter((item) => item.id !== editId));
+    setView('calendar');
+  };
 
   const loadData = async (todayKey: string) => {
     let nextUser: { id: string; name: string } | null = null;
@@ -386,6 +484,11 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
                 <p className="eyebrow flex items-center gap-1.5">
                   <CalendarIcon className="h-3.5 w-3.5" />
                   Barangay calendar
+                  {editable && (
+                    <span className="rounded-full border border-pending-line bg-pending-bg px-2 py-0.5 text-[0.5625rem] tracking-[0.1em] text-pending-ink">
+                      Staff · editable
+                    </span>
+                  )}
                 </p>
                 <button
                   type="button"
@@ -511,6 +614,18 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
                           title={event.title}
                           sub={`${EVENT_LABEL[event.kind]} · ${formatRange(event.start_date, event.end_date)}`}
                           body={event.description}
+                          actions={
+                            editable ? (
+                              <button
+                                type="button"
+                                onClick={() => startEvent(event, selected)}
+                                aria-label={`Edit ${event.title}`}
+                                className="rounded-lg p-1.5 text-muted transition hover:bg-surface hover:text-pine-ink"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                            ) : null
+                          }
                         />
                       ))}
                       {selectedMine.map((row) => (
@@ -535,6 +650,8 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
                     </p>
                   )}
 
+                  {!editable && (
+                    <>
                   {/* Appointment call to action */}
                   <div className="mt-4 rounded-2xl border-2 border-ready-line bg-mint/60 p-3.5">
                     <p className="flex items-center gap-1.5 text-sm font-extrabold text-pine-ink">
@@ -619,6 +736,36 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                    </>
+                  )}
+                  {editable && (
+                    <div className="mt-4 rounded-2xl border-2 border-pending-line bg-pending-bg/60 p-3.5">
+                      <p className="flex items-center gap-1.5 text-sm font-extrabold text-pending-ink">
+                        <PencilIcon className="h-4 w-4" />
+                        Staff: edit this calendar
+                      </p>
+                      <p className="mt-1 text-xs font-semibold leading-relaxed text-muted">
+                        Add events, notices or hall closures to any date, or tap the pencil on an entry to
+                        change it. Residents see updates right away.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => startEvent(null, selected)}
+                        className={`${buttonClasses('primary', 'md')} mt-3 w-full`}
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        Add event on {formatShort(selected)}
+                      </button>
+                      <Link
+                        href="/admin/appointments"
+                        onClick={closePanel}
+                        className={`${buttonClasses('secondary', 'md')} mt-2 w-full`}
+                      >
+                        Manage walk-in appointments
+                      </Link>
                     </div>
                   )}
 
@@ -791,6 +938,130 @@ export function BarangayCalendar({ className = '' }: { className?: string }) {
                 </form>
               )}
 
+              {view === 'edit' && editable && (
+                <form onSubmit={saveEvent} noValidate>
+                  <button
+                    type="button"
+                    onClick={() => setView('calendar')}
+                    className="mb-3 inline-flex items-center gap-1 text-xs font-bold text-pine-ink hover:underline"
+                  >
+                    <ChevronLeftIcon className="h-3.5 w-3.5" />
+                    Back to calendar
+                  </button>
+                  <h2 className="font-display text-xl font-bold text-forest">
+                    {editId ? 'Edit calendar entry' : 'New calendar entry'}
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold leading-relaxed text-muted">
+                    Residents will see this on their barangay calendar.
+                  </p>
+
+                  <div className="mt-4 space-y-4">
+                    <label className="block">
+                      <span className="label-sm text-forest">Title</span>
+                      <input
+                        value={evTitle}
+                        onChange={(event) => setEvTitle(event.target.value)}
+                        maxLength={120}
+                        placeholder="e.g. Barangay assembly"
+                        className="input-base mt-1.5"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="label-sm text-forest">Type</span>
+                      <select
+                        value={evKind}
+                        onChange={(event) => setEvKind(event.target.value as BarangayEventKind)}
+                        className="input-base mt-1.5"
+                      >
+                        <option value="event">Event</option>
+                        <option value="notice">Notice</option>
+                        <option value="closure">Hall closed (blocks appointments)</option>
+                      </select>
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block">
+                        <span className="label-sm text-forest">Starts</span>
+                        <input
+                          type="date"
+                          value={evStart}
+                          onChange={(event) => setEvStart(event.target.value)}
+                          className="input-base mt-1.5"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="label-sm text-forest">Ends (optional)</span>
+                        <input
+                          type="date"
+                          value={evEnd}
+                          min={evStart || undefined}
+                          onChange={(event) => setEvEnd(event.target.value)}
+                          className="input-base mt-1.5"
+                        />
+                      </label>
+                    </div>
+                    <label className="block">
+                      <span className="label-sm text-forest">Details (optional)</span>
+                      <textarea
+                        value={evDesc}
+                        onChange={(event) => setEvDesc(event.target.value)}
+                        maxLength={1000}
+                        rows={3}
+                        className="input-base mt-1.5 resize-none"
+                      />
+                    </label>
+
+                    {evError && (
+                      <p
+                        role="alert"
+                        className="flex items-start gap-2 rounded-xl border-2 border-rejected-line bg-rejected-bg px-3 py-2.5 text-xs font-bold text-rejected-ink"
+                      >
+                        <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                        {evError}
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={evSaving}
+                      className={`${buttonClasses('primary', 'lg')} w-full`}
+                    >
+                      {evSaving ? 'Saving…' : editId ? 'Save changes' : 'Add to calendar'}
+                    </button>
+
+                    {editId &&
+                      (evConfirmDelete ? (
+                        <div className="flex items-center justify-center gap-2 text-xs font-bold">
+                          <span className="text-muted">Delete this entry?</span>
+                          <button
+                            type="button"
+                            disabled={evSaving}
+                            onClick={() => void deleteEvent()}
+                            className="rounded-lg bg-rejected-bg px-2.5 py-1 text-rejected-ink"
+                          >
+                            Yes, delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEvConfirmDelete(false)}
+                            className="rounded-lg bg-mist px-2.5 py-1 text-forest"
+                          >
+                            Keep
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setEvConfirmDelete(true)}
+                          className="mx-auto flex items-center gap-1.5 text-xs font-bold text-muted transition hover:text-rejected-ink"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                          Delete entry
+                        </button>
+                      ))}
+                  </div>
+                </form>
+              )}
+
               {view === 'done' && booked && (
                 <div className="py-2 text-center">
                   <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-mint text-pine-ink">
@@ -863,20 +1134,23 @@ function DayItem({
   title,
   sub,
   body,
+  actions,
 }: {
   bar: string;
   title: string;
   sub: string;
   body?: string | null;
+  actions?: ReactNode;
 }) {
   return (
     <div className="flex overflow-hidden rounded-xl bg-mist">
       <span className={`w-1.5 shrink-0 ${bar}`} aria-hidden="true" />
-      <div className="min-w-0 px-3.5 py-2.5">
+      <div className="min-w-0 flex-1 px-3.5 py-2.5">
         <p className="text-sm font-extrabold uppercase tracking-wide text-forest">{title}</p>
         <p className="text-xs font-semibold text-muted">{sub}</p>
         {body ? <p className="mt-1 text-xs font-medium leading-relaxed text-muted">{body}</p> : null}
       </div>
+      {actions ? <div className="flex shrink-0 items-start p-1.5">{actions}</div> : null}
     </div>
   );
 }

@@ -115,7 +115,7 @@ export function PortalHeader({
               </span>
             </div>
 
-            <BarangayCalendar className="!h-10 !w-10" />
+            <BarangayCalendar className="!h-10 !w-10" editable={role === 'admin'} />
             <ThemeToggle className="!h-10 !w-10" />
 
             <button

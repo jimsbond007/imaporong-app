@@ -16,10 +16,10 @@ import { Modal } from '@/components/ui/Modal';
 import { StageLayout } from '@/components/portal/StageLayout';
 import { ProfilePill } from '@/components/portal/ProfilePill';
 import {
-  AnnouncementBar,
-  FeatureCard,
-  ShortcutButton,
+  ActionTile,
+  NoticeCard,
   StagePanel,
+  SummaryHero,
   TaskRow,
 } from '@/components/portal/StageWidgets';
 import {
@@ -900,7 +900,7 @@ export default function AdminPage() {
               <CalendarIcon className="h-4 w-4" />
               <span>Appointments</span>
             </Link>
-            <BarangayCalendar className="!h-10 !w-10" />
+            <BarangayCalendar className="!h-10 !w-10" editable />
             <ThemeToggle className="!h-10 !w-10" />
             <Link
               href="/dashboard"
@@ -1004,134 +1004,139 @@ export default function AdminPage() {
               </p>
             </div>
 
-            <div className="grid gap-4 xl:grid-cols-[0.95fr_1.7fr_0.95fr]">
-              <StagePanel title="Needs your attention" icon="alert">
-                {pendingRequests.slice(0, 3).map((request) => (
-                  <TaskRow
-                    key={request.id}
-                    icon="request"
-                    title={request.service_type}
-                    description={`${request.full_name} · ${getRequestSlipNumber(request)}`}
-                    action={
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setSelectedRequest(request)}
-                      >
-                        Review request
-                      </Button>
-                    }
-                  />
-                ))}
-                {pendingVerification.length > 0 && (
-                  <TaskRow
-                    icon="users"
-                    title={`${pendingVerification.length} resident record${pendingVerification.length === 1 ? '' : 's'} need verification`}
-                    description="Open the resident registry to review and verify resident records."
-                    action={
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setActiveTab('residents')}
-                      >
-                        Review residents
-                      </Button>
-                    }
-                  />
-                )}
-                {pendingRequests.length === 0 && pendingVerification.length === 0 && (
-                  <TaskRow
-                    icon="check"
-                    title="All caught up"
-                    description="There are no pending requests or resident records to verify."
-                  />
-                )}
-              </StagePanel>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FeatureCard
-                  icon="request"
-                  title="Review service requests"
-                  description={`${pendingRequests.length} pending for review · ${readyRequests.length} ready for pickup.`}
-                  tone="forest"
+            <div className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
+              <div className="grid content-start gap-4">
+                <SummaryHero
+                  eyebrow="Today at the barangay"
+                  title={
+                    pendingRequests.length > 0
+                      ? `${pendingRequests.length} request${pendingRequests.length === 1 ? '' : 's'} waiting for review`
+                      : 'You’re all caught up'
+                  }
+                  description={
+                    pendingRequests.length > 0
+                      ? 'Start with the oldest requests so residents get their documents sooner.'
+                      : 'No requests are waiting. Nice work keeping the queue clear.'
+                  }
                   action={
                     <Button
-                      variant="secondary"
-                      onClick={() => setActiveTab('requests')}
+                      variant="gold"
+                      onClick={() =>
+                        document
+                          .getElementById('request-queue')
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                      }
                     >
-                      Open request queue
+                      Go to request queue
                     </Button>
                   }
+                  chips={[
+                    { label: 'ready for pickup', value: readyRequests.length },
+                    { label: 'to verify', value: pendingVerification.length },
+                  ]}
                 />
-                <FeatureCard
-                  icon="news"
-                  title="Share a barangay update"
-                  description="Create or update a notice for residents in the online noticeboard."
-                  tone="sky"
+
+                <StagePanel
+                  title="Needs your attention"
+                  icon="alert"
+                  count={pendingRequests.length + pendingVerification.length}
+                >
+                  {pendingRequests.slice(0, 3).map((request) => (
+                    <TaskRow
+                      key={request.id}
+                      icon="request"
+                      title={request.service_type}
+                      description={`${request.full_name} · ${getRequestSlipNumber(request)}`}
+                      action={
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setSelectedRequest(request)}
+                        >
+                          Review
+                        </Button>
+                      }
+                    />
+                  ))}
+                  {pendingVerification.length > 0 && (
+                    <TaskRow
+                      icon="users"
+                      title={`${pendingVerification.length} resident record${pendingVerification.length === 1 ? '' : 's'} to verify`}
+                      description="Check and verify new resident records."
+                      action={
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setActiveTab('residents')}
+                        >
+                          Open
+                        </Button>
+                      }
+                    />
+                  )}
+                  {pendingRequests.length === 0 && pendingVerification.length === 0 && (
+                    <TaskRow
+                      icon="check"
+                      title="All caught up"
+                      description="Nothing is waiting for review right now."
+                    />
+                  )}
+                </StagePanel>
+              </div>
+
+              <div className="grid content-start gap-4">
+                <StagePanel title="Quick actions" icon="home">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <ActionTile
+                      icon="request"
+                      title="Requests"
+                      hint={`${activeRequests.length} active`}
+                      onClick={() => setActiveTab('requests')}
+                    />
+                    <ActionTile
+                      icon="users"
+                      title="Residents"
+                      hint={`${residents.length} records`}
+                      onClick={() => setActiveTab('residents')}
+                    />
+                    <ActionTile
+                      icon="news"
+                      title="Notices"
+                      hint="Post an update"
+                      onClick={() => setActiveTab('announcements')}
+                    />
+                    <ActionTile
+                      icon="calendar"
+                      title="Calendar"
+                      hint="By date"
+                      onClick={() => setActiveTab('calendar')}
+                    />
+                  </div>
+                </StagePanel>
+
+                <NoticeCard
+                  title={
+                    announcements.find((announcement) => announcement.published)?.title ||
+                    'No published announcements yet'
+                  }
+                  description={
+                    announcements.find((announcement) => announcement.published)
+                      ? 'Currently shown to residents on the noticeboard.'
+                      : announcementsReady
+                        ? 'Share a barangay update with residents.'
+                        : 'The online noticeboard is being set up.'
+                  }
                   action={
                     <Button
                       variant="secondary"
+                      size="sm"
                       onClick={() => setActiveTab('announcements')}
                     >
-                      Open announcements
+                      Manage announcements
                     </Button>
                   }
                 />
               </div>
-
-              <StagePanel title="Workspace modules" icon="home">
-                <div className="grid gap-2.5">
-                  <ShortcutButton
-                    icon="request"
-                    title="Requests"
-                    description="Review, update, and print request slips."
-                    onClick={() => setActiveTab('requests')}
-                  />
-                  <ShortcutButton
-                    icon="users"
-                    title="Residents"
-                    description="Search, verify, and maintain resident records."
-                    onClick={() => setActiveTab('residents')}
-                  />
-                  <ShortcutButton
-                    icon="news"
-                    title="Announcements"
-                    description="Publish updates for residents."
-                    onClick={() => setActiveTab('announcements')}
-                  />
-                  <ShortcutButton
-                    icon="calendar"
-                    title="Request calendar"
-                    description="Browse request activity by date."
-                    onClick={() => setActiveTab('calendar')}
-                  />
-                </div>
-              </StagePanel>
-            </div>
-
-            <div className="mt-4">
-              <AnnouncementBar
-                title={
-                  announcements.find((announcement) => announcement.published)?.title ||
-                  'No published announcements yet'
-                }
-                description={
-                  announcements.find((announcement) => announcement.published)
-                    ? 'The latest notice currently published to residents.'
-                    : announcementsReady
-                      ? 'There are no published notices yet.'
-                      : 'The online noticeboard is being set up.'
-                }
-                action={
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setActiveTab('announcements')}
-                  >
-                    Open announcements
-                  </Button>
-                }
-              />
             </div>
           </section>
         )}
@@ -1194,7 +1199,7 @@ export default function AdminPage() {
 
         {/* ------------------------------------------------------------- Requests */}
         {activeTab === 'requests' && (
-          <section className="mt-5 overflow-hidden rounded-[20px] border-2 border-line bg-surface shadow-card">
+          <section id="request-queue" className="mt-5 scroll-mt-4 overflow-hidden rounded-[20px] border-2 border-line bg-surface shadow-card">
             <div className="flex flex-col gap-4 border-b border-line p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="heading-2">Service request queue</h2>

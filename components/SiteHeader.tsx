@@ -7,7 +7,6 @@ import { NAV_LINKS } from '@/lib/constants';
 import { buttonClasses } from '@/components/ui/Button';
 import { CloseIcon, MenuIcon } from '@/components/ui/icons';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { BarangayCalendar } from '@/components/calendar/BarangayCalendar';
 import imapMark from '@/assets/illustrations/imap.svg';
 
 export function SiteHeader() {
@@ -70,7 +69,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <BarangayCalendar />
           <ThemeToggle />
           <Link
             href="/auth"
@@ -84,7 +82,6 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <BarangayCalendar className="!h-10 !w-10" />
           <ThemeToggle className="!h-10 !w-10" />
           <button
             type="button"

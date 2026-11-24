@@ -3,20 +3,18 @@ import Link from 'next/link';
 
 import { PixelIcon, type PixelIconName } from './PixelIcon';
 
-const featureTones = {
-  forest: 'border-pine/30 bg-pine text-cream',
-  rice: 'border-rice/60 bg-straw text-forest',
-  sky: 'border-river/40 bg-sky text-forest',
-} as const;
-
+/** Soft white card with the theme's chunky border + hard offset shadow. */
 export function StagePanel({
   title,
   icon,
+  count,
   children,
   className = '',
 }: {
   title: string;
   icon: PixelIconName;
+  /** Optional small number chip beside the title. */
+  count?: number;
   children: ReactNode;
   className?: string;
 }) {
@@ -25,14 +23,74 @@ export function StagePanel({
       className={`rounded-[22px] border-2 border-line bg-surface p-4 shadow-subtle sm:p-5 ${className}`}
     >
       <h2 className="flex items-center gap-2 font-display text-base font-bold text-forest">
-        <PixelIcon name={icon} size={22} className="text-pine-ink" />
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-mint text-pine-ink">
+          <PixelIcon name={icon} size={18} />
+        </span>
         {title}
+        {typeof count === 'number' && count > 0 && (
+          <span className="ml-auto rounded-full border border-pending-line bg-pending-bg px-2.5 py-0.5 font-sans text-[0.6875rem] font-bold text-pending-ink">
+            {count}
+          </span>
+        )}
       </h2>
       <div className="mt-4">{children}</div>
     </section>
   );
 }
 
+/** Big green summary banner: one headline, one primary action. */
+export function SummaryHero({
+  eyebrow,
+  title,
+  description,
+  action,
+  chips,
+}: {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action?: ReactNode;
+  chips?: { label: string; value: number }[];
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[24px] border-2 border-pine-deep/40 bg-pine p-5 text-paper shadow-card sm:p-7">
+      {/* Decorative pixel blocks, echoing the village backdrop */}
+      <div aria-hidden="true" className="pointer-events-none absolute -right-4 -top-4 grid grid-cols-4 gap-1.5 opacity-20">
+        {Array.from({ length: 16 }).map((_, i) => (
+          <span
+            key={i}
+            className={`h-7 w-7 rounded-[6px] ${i % 3 === 0 ? 'bg-rice' : i % 2 === 0 ? 'bg-leaf' : 'bg-paper'}`}
+          />
+        ))}
+      </div>
+
+      <div className="relative">
+        <p className="text-[0.6875rem] font-bold uppercase tracking-[0.16em] text-paper/70">
+          {eyebrow}
+        </p>
+        <h2 className="mt-2 max-w-md font-display text-2xl font-bold leading-snug !text-paper sm:text-[1.75rem]">
+          {title}
+        </h2>
+        <p className="mt-2 max-w-md text-sm leading-relaxed text-paper/80">{description}</p>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          {action}
+          {chips?.map((chip) => (
+            <span
+              key={chip.label}
+              className="inline-flex items-center gap-2 rounded-full border border-paper/25 bg-paper/10 px-3 py-1.5 text-xs font-bold text-paper"
+            >
+              <span className="font-display text-sm">{chip.value}</span>
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** A single compact line: icon, title, meta, and a quiet action on the right. */
 export function TaskRow({
   icon,
   title,
@@ -45,73 +103,47 @@ export function TaskRow({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0 sm:flex-row sm:items-start">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
+    <div className="flex items-center gap-3 border-b border-line py-3 first:pt-0 last:border-b-0 last:pb-0">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
         <PixelIcon name={icon} size={20} />
       </span>
       <div className="min-w-0 flex-1">
-        <h3 className="text-sm font-extrabold text-forest">{title}</h3>
-        <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
-        {action && <div className="mt-2.5">{action}</div>}
+        <h3 className="truncate font-sans text-sm font-extrabold text-forest">{title}</h3>
+        <p className="mt-0.5 truncate text-xs text-muted">{description}</p>
       </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
 
-export function FeatureCard({
-  icon,
-  title,
-  description,
-  action,
-  tone = 'sky',
-}: {
-  icon: PixelIconName;
-  title: string;
-  description: string;
-  action: ReactNode;
-  tone?: keyof typeof featureTones;
-}) {
-  return (
-    <section
-      className={`flex min-h-[190px] flex-col rounded-[22px] border-2 p-5 shadow-subtle sm:p-6 ${featureTones[tone]}`}
-    >
-      <PixelIcon name={icon} size={32} />
-      <h2 className="mt-4 font-display text-xl font-bold leading-snug">{title}</h2>
-      <p className="mt-2 flex-1 text-sm leading-relaxed opacity-85">{description}</p>
-      <div className="mt-5">{action}</div>
-    </section>
-  );
-}
-
-type ShortcutAction =
+type TileAction =
   | { href: string; onClick?: never }
   | { href?: never; onClick: () => void };
 
-export function ShortcutButton({
+/** Small square-ish shortcut: icon, title, and one short hint line. */
+export function ActionTile({
   icon,
   title,
-  description,
+  hint,
   href,
   onClick,
 }: {
   icon: PixelIconName;
   title: string;
-  description: string;
-} & ShortcutAction) {
+  hint?: string;
+} & TileAction) {
   const content = (
     <>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint text-pine-ink">
+      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint text-pine-ink">
         <PixelIcon name={icon} size={22} />
       </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-extrabold text-forest">{title}</span>
-        <span className="mt-1 block text-xs leading-relaxed text-muted">{description}</span>
-      </span>
+      <span className="mt-3 block text-sm font-extrabold text-forest">{title}</span>
+      {hint && <span className="mt-0.5 block text-xs text-muted">{hint}</span>}
     </>
   );
 
   const className =
-    'interactive-card flex min-h-[76px] items-start gap-3 rounded-2xl border-2 border-line bg-surface p-3.5 text-left shadow-subtle';
+    'interactive-card flex flex-col items-start rounded-2xl border-2 border-line bg-surface p-3.5 text-left shadow-subtle';
 
   return href ? (
     <Link href={href} className={className}>
@@ -124,7 +156,8 @@ export function ShortcutButton({
   );
 }
 
-export function AnnouncementBar({
+/** Warm straw-coloured card that replaces the old sticky announcement bar. */
+export function NoticeCard({
   title,
   description,
   action,
@@ -134,20 +167,16 @@ export function AnnouncementBar({
   action: ReactNode;
 }) {
   return (
-    <section className="sticky bottom-20 z-20 flex flex-col gap-3 rounded-2xl border-2 border-rice/60 bg-straw p-4 shadow-card sm:bottom-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-      <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-pine-ink">
-          <PixelIcon name="news" size={22} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[0.6875rem] font-bold uppercase tracking-[0.12em] text-muted">
-            Community announcements
-          </p>
-          <h2 className="mt-1 truncate text-sm font-extrabold text-forest">{title}</h2>
-          <p className="mt-0.5 text-xs leading-relaxed text-muted">{description}</p>
-        </div>
-      </div>
-      <div className="shrink-0">{action}</div>
+    <section className="rounded-[22px] border-2 border-rice/60 bg-straw p-4 shadow-subtle sm:p-5">
+      <p className="flex items-center gap-2 text-[0.6875rem] font-bold uppercase tracking-[0.14em] text-muted">
+        <PixelIcon name="news" size={16} className="text-pine-ink" />
+        Latest notice
+      </p>
+      <h2 className="mt-2 line-clamp-2 font-display text-base font-bold leading-snug text-forest">
+        {title}
+      </h2>
+      <p className="mt-1 text-xs leading-relaxed text-muted">{description}</p>
+      <div className="mt-4">{action}</div>
     </section>
   );
 }

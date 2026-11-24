@@ -17,7 +17,7 @@ export function StageLayout({
   contentClassName?: string;
 }) {
   return (
-    <div className={`relative min-h-[calc(100svh-72px)] overflow-hidden ${className}`}>
+    <div className={`relative min-h-[calc(100svh-72px)] ${className}`}>
       <PixelBackdrop />
       <div className="relative z-10 mx-auto w-full max-w-[1220px] px-3 py-4 sm:px-5 sm:py-6">
         <div
