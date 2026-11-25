@@ -19,6 +19,7 @@ export default async function AuthPage({
       initialMode={params.mode === 'register' ? 'register' : 'login'}
       roleError={params.error === 'role'}
       oauthError={params.error === 'oauth'}
+      verifyError={params.error === 'verify'}
       nextPath={params.next ?? null}
     />
   );

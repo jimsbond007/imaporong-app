@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -29,11 +29,13 @@ export function AuthForm({
   initialMode = 'login',
   roleError = false,
   oauthError = false,
+  verifyError = false,
   nextPath = null,
 }: {
   initialMode?: Mode;
   roleError?: boolean;
   oauthError?: boolean;
+  verifyError?: boolean;
   nextPath?: string | null;
 }) {
   const router = useRouter();
@@ -53,8 +55,25 @@ export function AuthForm({
             type: 'error',
             message: 'Google sign-in could not be completed. Please try again.',
           }
-        : null,
+        : verifyError
+          ? {
+              type: 'error',
+              message:
+                'That verification link is invalid or has expired. Enter your email below and sign in to get a new one.',
+            }
+          : null,
   );
+
+  // Email verification: the address we are waiting on, and the resend cooldown.
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = window.setTimeout(() => setCooldown((value) => value - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [cooldown]);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -76,7 +95,16 @@ export function AuthForm({
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setNotice({ type: 'error', message: error.message });
+      if (error.code === 'email_not_confirmed') {
+        setPendingEmail(email.trim());
+        setNotice({
+          type: 'error',
+          message:
+            'Please confirm your email address first. Open the verification email we sent you, or request a new one below.',
+        });
+      } else {
+        setNotice({ type: 'error', message: error.message });
+      }
       setLoading(false);
       return;
     }
@@ -162,6 +190,7 @@ export function AuthForm({
       email,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
         data: {
           full_name: fullName.trim(),
           address: address.trim(),
@@ -215,10 +244,50 @@ export function AuthForm({
     setMode('login');
     setPassword('');
     setLoading(false);
+
+    // With email confirmation on, Supabase returns an empty `identities` list
+    // (and sends nothing) when the address already belongs to an account.
+    if (data.user && data.user.identities?.length === 0) {
+      setNotice({
+        type: 'error',
+        message: 'That email address is already registered. Sign in instead.',
+      });
+      return;
+    }
+
+    setPendingEmail(email.trim());
+    setCooldown(60);
     setNotice({
       type: 'success',
-      message:
-        'Account created. Check your email to confirm your address, then sign in here.',
+      message: `We sent a verification link to ${email.trim()}. Open it to confirm your address, then sign in here.`,
+    });
+  };
+
+  const handleResend = async () => {
+    if (!pendingEmail || resending || cooldown > 0) return;
+    setResending(true);
+
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: pendingEmail,
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+
+    setResending(false);
+    if (error) {
+      setNotice({
+        type: 'error',
+        message: /rate|seconds|too many/i.test(error.message)
+          ? 'Too many requests. Please wait a minute before asking for another email.'
+          : `Could not send the email. ${error.message}`,
+      });
+      return;
+    }
+
+    setCooldown(60);
+    setNotice({
+      type: 'success',
+      message: `A new verification link is on its way to ${pendingEmail}.`,
     });
   };
 
@@ -313,6 +382,26 @@ export function AuthForm({
                 }`}
               >
                 {notice.message}
+              </div>
+            )}
+
+            {pendingEmail && (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-line bg-surface p-3.5 shadow-subtle">
+                <p className="min-w-0 flex-1 text-xs font-semibold leading-relaxed text-muted">
+                  Nothing in your inbox? Check the spam folder, or ask for a new link.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={resending || cooldown > 0}
+                  className={buttonClasses('secondary', 'sm')}
+                >
+                  {resending
+                    ? 'Sending…'
+                    : cooldown > 0
+                      ? `Resend in ${cooldown}s`
+                      : 'Resend verification email'}
+                </button>
               </div>
             )}
 
