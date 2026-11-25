@@ -3,6 +3,8 @@ export interface Announcement {
   title: string;
   body: string;
   category: string;
+  /** Public URL of an uploaded photo, if staff attached one. */
+  image_url?: string | null;
   published: boolean;
   published_at: string;
   created_at: string;

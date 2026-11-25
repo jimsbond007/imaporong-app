@@ -45,6 +45,12 @@ import {
   UsersIcon,
 } from '@/components/ui/icons';
 import type { Announcement, ResidentRow, ServiceRequestRow } from '@/lib/types';
+import { AnnouncementCard } from '@/components/AnnouncementCard';
+import {
+  removeAnnouncementImage,
+  uploadAnnouncementImage,
+  validateAnnouncementImage,
+} from '@/lib/announcement-images';
 import imapMark from '@/assets/illustrations/imap.svg';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { BarangayCalendar } from '@/components/calendar/BarangayCalendar';
@@ -155,7 +161,14 @@ export default function AdminPage() {
     body: '',
     category: 'General',
     published: true,
+    imageUrl: null as string | null,
   });
+  const [announcementImageFile, setAnnouncementImageFile] = useState<File | null>(null);
+  const [announcementImagePreview, setAnnouncementImagePreview] = useState<string | null>(null);
+  const announcementImageInput = useRef<HTMLInputElement>(null);
+  const [announcementFilter, setAnnouncementFilter] = useState<'all' | 'published' | 'draft'>(
+    'all',
+  );
   const [announcementBusy, setAnnouncementBusy] = useState(false);
   const [announcementError, setAnnouncementError] = useState('');
   const [announcementToDelete, setAnnouncementToDelete] = useState<Announcement | null>(
@@ -673,6 +686,13 @@ export default function AdminPage() {
   };
 
   // ------------------------------------------------------------- Announcements
+  const clearPickedImage = () => {
+    if (announcementImagePreview) URL.revokeObjectURL(announcementImagePreview);
+    setAnnouncementImageFile(null);
+    setAnnouncementImagePreview(null);
+    if (announcementImageInput.current) announcementImageInput.current.value = '';
+  };
+
   const resetAnnouncementForm = () => {
     setAnnouncementForm({
       id: null,
@@ -680,8 +700,32 @@ export default function AdminPage() {
       body: '',
       category: 'General',
       published: true,
+      imageUrl: null,
     });
+    clearPickedImage();
     setAnnouncementError('');
+  };
+
+  const pickAnnouncementImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const problem = validateAnnouncementImage(file);
+    if (problem) {
+      setAnnouncementError(problem);
+      event.target.value = '';
+      return;
+    }
+
+    if (announcementImagePreview) URL.revokeObjectURL(announcementImagePreview);
+    setAnnouncementError('');
+    setAnnouncementImageFile(file);
+    setAnnouncementImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeAnnouncementPhoto = () => {
+    clearPickedImage();
+    setAnnouncementForm((previous) => ({ ...previous, imageUrl: null }));
   };
 
   const saveAnnouncement = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -698,18 +742,30 @@ export default function AdminPage() {
     }
 
     setAnnouncementBusy(true);
+    let uploadedUrl: string | null = null;
     try {
+      const existing = announcementForm.id
+        ? announcements.find((announcement) => announcement.id === announcementForm.id)
+        : undefined;
+
+      let imageUrl = announcementForm.imageUrl;
+      if (announcementImageFile) {
+        uploadedUrl = await uploadAnnouncementImage(announcementImageFile);
+        imageUrl = uploadedUrl;
+      }
+
+      // Only send image_url when it changed, so saving text-only edits keeps
+      // working even before the image migration has been applied.
+      const imageChanged = (existing?.image_url ?? null) !== imageUrl;
       const payload = {
         title: announcementForm.title.trim(),
         body: announcementForm.body.trim(),
         category: announcementForm.category,
         published: announcementForm.published,
+        ...(imageChanged ? { image_url: imageUrl } : {}),
       };
 
       if (announcementForm.id) {
-        const existing = announcements.find(
-          (announcement) => announcement.id === announcementForm.id,
-        );
         const shouldRestamp =
           announcementForm.published && existing && !existing.published;
 
@@ -726,14 +782,22 @@ export default function AdminPage() {
         if (error) throw error;
       }
 
+      // The photo was replaced or removed: clean up the old file.
+      if (existing?.image_url && existing.image_url !== imageUrl) {
+        await removeAnnouncementImage(existing.image_url);
+      }
+
+      const wasEditing = Boolean(announcementForm.id);
       resetAnnouncementForm();
       await fetchData();
       showFeedback(
         'success',
-        announcementForm.id ? 'Announcement updated.' : 'Announcement published to the landing page.',
+        wasEditing ? 'Announcement updated.' : 'Announcement published to the landing page.',
       );
     } catch (error) {
       console.error('Failed to save announcement:', error);
+      // Don't leave an orphaned upload behind if the save itself failed.
+      if (uploadedUrl) await removeAnnouncementImage(uploadedUrl);
       setAnnouncementError(`Could not save this announcement: ${(error as Error).message}`);
     } finally {
       setAnnouncementBusy(false);
@@ -741,12 +805,14 @@ export default function AdminPage() {
   };
 
   const editAnnouncement = (announcement: Announcement) => {
+    clearPickedImage();
     setAnnouncementForm({
       id: announcement.id,
       title: announcement.title,
       body: announcement.body,
       category: announcement.category,
       published: announcement.published,
+      imageUrl: announcement.image_url ?? null,
     });
     setAnnouncementError('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -761,6 +827,7 @@ export default function AdminPage() {
         .delete()
         .eq('id', announcementToDelete.id);
       if (error) throw error;
+      await removeAnnouncementImage(announcementToDelete.image_url);
       setAnnouncementToDelete(null);
       await fetchData();
       showFeedback('success', 'Announcement deleted.');
@@ -1500,152 +1567,204 @@ export default function AdminPage() {
 
         {/* --------------------------------------------------------- Announcements */}
         {activeTab === 'announcements' && (
-          <section className="mt-5 grid gap-4 lg:grid-cols-[1fr_1.5fr]">
-            <form
-              onSubmit={saveAnnouncement}
-              className="h-fit rounded-[20px] border-2 border-line bg-surface p-5 shadow-card lg:sticky lg:top-36"
-            >
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="heading-2">
-                  {announcementForm.id ? 'Edit announcement' : 'New announcement'}
-                </h2>
-                {announcementForm.id && (
-                  <Button variant="ghost" size="sm" onClick={resetAnnouncementForm}>
-                    Cancel edit
-                  </Button>
+          <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.7fr)]">
+            <form onSubmit={saveAnnouncement} className="h-fit lg:sticky lg:top-36">
+              <StagePanel
+                title={announcementForm.id ? 'Edit announcement' : 'New announcement'}
+                icon="news"
+                action={
+                  announcementForm.id ? (
+                    <Button variant="ghost" size="sm" onClick={resetAnnouncementForm}>
+                      Cancel edit
+                    </Button>
+                  ) : undefined
+                }
+              >
+                <p className="body-sm -mt-1">
+                  Published announcements appear on the landing page and resident noticeboard
+                  immediately.
+                </p>
+
+                {!announcementsReady && (
+                  <div className="mt-3 rounded-xl border border-pending-line bg-pending-bg p-3 text-xs font-semibold leading-relaxed text-pending-ink">
+                    The announcements table is not available yet. Apply{' '}
+                    <code className="font-mono">
+                      20261105120000_security_hardening_and_announcements.sql
+                    </code>{' '}
+                    in Supabase, then refresh this page.
+                  </div>
                 )}
-              </div>
-              <p className="body-sm mt-1">
-                Published announcements appear on the public landing page immediately.
-              </p>
 
-              {!announcementsReady && (
-                <div className="mt-3 rounded-xl border border-pending-line bg-pending-bg p-3 text-xs font-semibold leading-relaxed text-pending-ink">
-                  The announcements table is not available yet. Apply{' '}
-                  <code className="font-mono">
-                    20261105120000_security_hardening_and_announcements.sql
-                  </code>{' '}
-                  in Supabase, then refresh this page.
-                </div>
-              )}
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label htmlFor="announcement-title" className="label-md block text-forest">
+                      Title <span className="text-rejected-ink">*</span>
+                    </label>
+                    <input
+                      id="announcement-title"
+                      type="text"
+                      required
+                      maxLength={160}
+                      value={announcementForm.title}
+                      onChange={(event) =>
+                        setAnnouncementForm((previous) => ({
+                          ...previous,
+                          title: event.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Barangay assembly this Saturday"
+                      className="input-base mt-1.5"
+                    />
+                  </div>
 
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label htmlFor="announcement-title" className="label-md block text-forest">
-                    Title <span className="text-rejected-ink">*</span>
-                  </label>
-                  <input
-                    id="announcement-title"
-                    type="text"
-                    required
-                    maxLength={160}
-                    value={announcementForm.title}
-                    onChange={(event) =>
-                      setAnnouncementForm((previous) => ({
-                        ...previous,
-                        title: event.target.value,
-                      }))
-                    }
-                    placeholder="e.g. Barangay assembly this Saturday"
-                    className="input-base mt-1.5"
-                  />
-                </div>
+                  <div>
+                    <label
+                      htmlFor="announcement-category"
+                      className="label-md block text-forest"
+                    >
+                      Category
+                    </label>
+                    <select
+                      id="announcement-category"
+                      value={announcementForm.category}
+                      onChange={(event) =>
+                        setAnnouncementForm((previous) => ({
+                          ...previous,
+                          category: event.target.value,
+                        }))
+                      }
+                      className="input-base mt-1.5"
+                    >
+                      {ANNOUNCEMENT_CATEGORIES.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div>
-                  <label
-                    htmlFor="announcement-category"
-                    className="label-md block text-forest"
-                  >
-                    Category
-                  </label>
-                  <select
-                    id="announcement-category"
-                    value={announcementForm.category}
-                    onChange={(event) =>
-                      setAnnouncementForm((previous) => ({
-                        ...previous,
-                        category: event.target.value,
-                      }))
-                    }
-                    className="input-base mt-1.5"
-                  >
-                    {ANNOUNCEMENT_CATEGORIES.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  <div>
+                    <label htmlFor="announcement-image" className="label-md block text-forest">
+                      Photo <span className="font-medium text-muted">(optional)</span>
+                    </label>
+                    <input
+                      ref={announcementImageInput}
+                      id="announcement-image"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={pickAnnouncementImage}
+                      className="peer sr-only"
+                    />
+                    {announcementImagePreview || announcementForm.imageUrl ? (
+                      <div className="relative mt-1.5 h-44 overflow-hidden rounded-2xl border-2 border-line bg-mist">
+                        <Image
+                          src={(announcementImagePreview || announcementForm.imageUrl) as string}
+                          alt="Selected announcement photo"
+                          fill
+                          unoptimized
+                          sizes="400px"
+                          className="object-cover"
+                        />
+                        <div className="absolute inset-x-2 bottom-2 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => announcementImageInput.current?.click()}
+                          >
+                            Replace
+                          </Button>
+                          <Button size="sm" variant="dangerSoft" onClick={removeAnnouncementPhoto}>
+                            <TrashIcon className="h-3.5 w-3.5" />
+                            Remove
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <label
+                        htmlFor="announcement-image"
+                        className="interactive-card mt-1.5 flex cursor-pointer flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-dashed border-field-line bg-subtle px-4 py-6 text-center peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-pine"
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-mint text-pine-ink">
+                          <UploadIcon className="h-5 w-5" />
+                        </span>
+                        <span className="text-sm font-extrabold text-forest">Add a photo</span>
+                        <span className="text-xs font-medium text-muted">
+                          JPG, PNG or WebP · large photos are resized automatically
+                        </span>
+                      </label>
+                    )}
+                  </div>
 
-                <div>
-                  <label htmlFor="announcement-body" className="label-md block text-forest">
-                    Announcement text <span className="text-rejected-ink">*</span>
-                  </label>
-                  <textarea
-                    id="announcement-body"
-                    required
-                    rows={7}
-                    maxLength={4000}
-                    value={announcementForm.body}
-                    onChange={(event) =>
-                      setAnnouncementForm((previous) => ({
-                        ...previous,
-                        body: event.target.value,
-                      }))
-                    }
-                    placeholder="Write the details residents need to know."
-                    className="input-base mt-1.5 resize-y"
-                  />
-                  <p className="mt-1 text-right text-xs font-medium text-muted">
-                    {announcementForm.body.length}/4000
-                  </p>
-                </div>
+                  <div>
+                    <label htmlFor="announcement-body" className="label-md block text-forest">
+                      Announcement text <span className="text-rejected-ink">*</span>
+                    </label>
+                    <textarea
+                      id="announcement-body"
+                      required
+                      rows={6}
+                      maxLength={4000}
+                      value={announcementForm.body}
+                      onChange={(event) =>
+                        setAnnouncementForm((previous) => ({
+                          ...previous,
+                          body: event.target.value,
+                        }))
+                      }
+                      placeholder="Write the details residents need to know."
+                      className="input-base mt-1.5 resize-y"
+                    />
+                    <p className="mt-1 text-right text-xs font-medium text-muted">
+                      {announcementForm.body.length}/4000
+                    </p>
+                  </div>
 
-                <label className="flex items-start gap-2.5 rounded-xl border border-line bg-subtle p-3">
-                  <input
-                    type="checkbox"
-                    checked={announcementForm.published}
-                    onChange={(event) =>
-                      setAnnouncementForm((previous) => ({
-                        ...previous,
-                        published: event.target.checked,
-                      }))
-                    }
-                    className="mt-0.5 h-4 w-4 accent-[#267653]"
-                  />
-                  <span>
-                    <span className="block text-sm font-bold text-forest">Published</span>
-                    <span className="block text-xs font-medium text-muted">
-                      Uncheck to keep this as a draft without showing it publicly.
+                  <label className="flex items-start gap-2.5 rounded-xl border border-line bg-subtle p-3">
+                    <input
+                      type="checkbox"
+                      checked={announcementForm.published}
+                      onChange={(event) =>
+                        setAnnouncementForm((previous) => ({
+                          ...previous,
+                          published: event.target.checked,
+                        }))
+                      }
+                      className="mt-0.5 h-4 w-4 accent-[#267653]"
+                    />
+                    <span>
+                      <span className="block text-sm font-bold text-forest">Published</span>
+                      <span className="block text-xs font-medium text-muted">
+                        Uncheck to keep this as a draft without showing it publicly.
+                      </span>
                     </span>
-                  </span>
-                </label>
+                  </label>
 
-                {announcementError && (
-                  <p
-                    role="alert"
-                    className="rounded-xl border border-rejected-line bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+                  {announcementError && (
+                    <p
+                      role="alert"
+                      className="rounded-xl border border-rejected-line bg-rejected-bg p-3 text-sm font-semibold text-rejected-ink"
+                    >
+                      {announcementError}
+                    </p>
+                  )}
+
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={announcementBusy || !announcementsReady}
                   >
-                    {announcementError}
-                  </p>
-                )}
-
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={announcementBusy || !announcementsReady}
-                >
-                  {announcementBusy
-                    ? 'Saving…'
-                    : announcementForm.id
-                      ? 'Save changes'
-                      : 'Publish announcement'}
-                </Button>
-              </div>
+                    {announcementBusy
+                      ? 'Saving…'
+                      : announcementForm.id
+                        ? 'Save changes'
+                        : 'Publish announcement'}
+                  </Button>
+                </div>
+              </StagePanel>
             </form>
 
-            <div className="space-y-3">
-              <div className="flex items-end justify-between gap-3">
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
                   <h2 className="heading-2">All announcements</h2>
                   <p className="body-sm mt-1">
@@ -1655,57 +1774,107 @@ export default function AdminPage() {
                 <Badge tone="neutral">{announcements.length} total</Badge>
               </div>
 
-              {announcements.length === 0 ? (
-                <div className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card">
-                  <EmptyState
-                    icon={<BellIcon className="h-5 w-5" />}
-                    title="No announcements yet"
-                    description="Use the form to publish the first update to the community noticeboard."
-                  />
-                </div>
-              ) : (
-                announcements.map((announcement) => (
-                  <article
-                    key={announcement.id}
-                    className="rounded-[20px] border-2 border-line bg-surface p-5 shadow-card"
+              <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+                {(
+                  [
+                    ['all', 'All', announcements.length],
+                    [
+                      'published',
+                      'Published',
+                      announcements.filter((announcement) => announcement.published).length,
+                    ],
+                    [
+                      'draft',
+                      'Drafts',
+                      announcements.filter((announcement) => !announcement.published).length,
+                    ],
+                  ] as const
+                ).map(([value, label, total]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-pressed={announcementFilter === value}
+                    onClick={() => setAnnouncementFilter(value)}
+                    className={`inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border-2 px-4 py-2 text-sm font-bold shadow-subtle transition ${
+                      announcementFilter === value
+                        ? 'border-pine-deep/40 bg-pine text-white'
+                        : 'border-line bg-surface text-muted hover:border-leaf hover:text-pine-ink'
+                    }`}
                   >
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge tone={announcement.published ? 'green' : 'gold'}>
-                        {announcement.published ? 'Published' : 'Draft'}
-                      </Badge>
-                      <Badge tone="sky">{announcement.category}</Badge>
-                      <span className="ml-auto text-xs font-semibold text-muted">
-                        {formatDate(announcement.published_at)}
-                      </span>
-                    </div>
+                    {label}
+                    <span className="text-xs opacity-80">{total}</span>
+                  </button>
+                ))}
+              </div>
 
-                    <h3 className="heading-3 mt-2.5">{announcement.title}</h3>
-                    <p className="body-sm mt-1.5 whitespace-pre-wrap break-words">
-                      {announcement.body}
-                    </p>
+              {(() => {
+                const visible = announcements.filter((announcement) =>
+                  announcementFilter === 'all'
+                    ? true
+                    : announcementFilter === 'published'
+                      ? announcement.published
+                      : !announcement.published,
+                );
 
-                    <div className="mt-4 flex flex-wrap gap-2 border-t border-line pt-3">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => editAnnouncement(announcement)}
-                      >
-                        <PencilIcon className="h-3.5 w-3.5" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="dangerSoft"
-                        onClick={() => setAnnouncementToDelete(announcement)}
-                        disabled={announcementBusy}
-                      >
-                        <TrashIcon className="h-3.5 w-3.5" />
-                        Delete
-                      </Button>
+                if (visible.length === 0) {
+                  return (
+                    <div className="rounded-[22px] border-2 border-line bg-surface p-5 shadow-subtle">
+                      <EmptyState
+                        icon={<BellIcon className="h-5 w-5" />}
+                        title={
+                          announcements.length === 0
+                            ? 'No announcements yet'
+                            : 'Nothing in this view'
+                        }
+                        description={
+                          announcements.length === 0
+                            ? 'Use the form to publish the first update to the community noticeboard.'
+                            : 'Try another filter to see the rest of your announcements.'
+                        }
+                      />
                     </div>
-                  </article>
-                ))
-              )}
+                  );
+                }
+
+                return (
+                  <ul className="grid gap-6 sm:grid-cols-2">
+                    {visible.map((announcement) => (
+                      <li key={announcement.id} className="h-full">
+                        <AnnouncementCard
+                          announcement={announcement}
+                          clamp
+                          status={
+                            <Badge tone={announcement.published ? 'green' : 'gold'}>
+                              {announcement.published ? 'Published' : 'Draft'}
+                            </Badge>
+                          }
+                          toolbar={
+                            <>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                onClick={() => editAnnouncement(announcement)}
+                              >
+                                <PencilIcon className="h-3.5 w-3.5" />
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="dangerSoft"
+                                onClick={() => setAnnouncementToDelete(announcement)}
+                                disabled={announcementBusy}
+                              >
+                                <TrashIcon className="h-3.5 w-3.5" />
+                                Delete
+                              </Button>
+                            </>
+                          }
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                );
+              })()}
             </div>
           </section>
         )}

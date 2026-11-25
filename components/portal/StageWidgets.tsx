@@ -8,6 +8,7 @@ export function StagePanel({
   title,
   icon,
   count,
+  action,
   children,
   className = '',
 }: {
@@ -15,6 +16,8 @@ export function StagePanel({
   icon: PixelIconName;
   /** Optional small number chip beside the title. */
   count?: number;
+  /** Optional control on the right of the title, e.g. a cancel button. */
+  action?: ReactNode;
   children: ReactNode;
   className?: string;
 }) {
@@ -32,6 +35,7 @@ export function StagePanel({
             {count}
           </span>
         )}
+        {action && <span className="ml-auto font-sans">{action}</span>}
       </h2>
       <div className="mt-4">{children}</div>
     </section>

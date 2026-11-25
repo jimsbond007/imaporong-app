@@ -143,14 +143,14 @@ export default async function ResidentAnnouncementsPage({
               }
             />
           ) : (
-            <ul className="grid gap-4 lg:grid-cols-2">
+            <ul className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
               {feed.items.map((announcement, index) => (
                 <li
                   key={announcement.id}
-                  className="animate-fade-up"
+                  className="animate-fade-up h-full"
                   style={{ animationDelay: `${Math.min(index, 6) * 60}ms` }}
                 >
-                  <AnnouncementCard announcement={announcement} />
+                  <AnnouncementCard announcement={announcement} large />
                 </li>
               ))}
             </ul>
@@ -175,9 +175,9 @@ function FilterChip({
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
-      className={`inline-flex min-h-10 shrink-0 items-center rounded-xl border px-4 py-2 text-sm font-bold transition ${
+      className={`inline-flex min-h-10 shrink-0 items-center rounded-full border-2 px-4 py-2 text-sm font-bold shadow-subtle transition ${
         active
-          ? 'border-pine bg-pine text-white'
+          ? 'border-pine-deep/40 bg-pine text-white'
           : 'border-line bg-surface text-muted hover:border-leaf hover:text-pine-ink'
       }`}
     >

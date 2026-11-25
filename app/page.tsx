@@ -183,6 +183,7 @@ export default async function HomePage() {
                     category: announcement.category || 'General',
                     dateLabel: formatDate(announcement.published_at),
                     iso: announcement.published_at,
+                    imageUrl: announcement.image_url,
                   }))}
                 />
               </div>

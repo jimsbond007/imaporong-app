@@ -1,8 +1,14 @@
 import { createClient } from '@/lib/supabase/server';
 import type { Announcement } from '@/lib/types';
 
-const ANNOUNCEMENT_FIELDS =
+const LEGACY_FIELDS =
   'id, title, body, category, published, published_at, created_at, updated_at';
+// image_url comes from 20261124010000_announcement_images.sql. Until that
+// migration runs, the queries below fall back to LEGACY_FIELDS.
+const ANNOUNCEMENT_FIELDS = `${LEGACY_FIELDS}, image_url`;
+
+const missingImageColumn = (error: { message?: string } | null) =>
+  Boolean(error?.message?.includes('image_url'));
 
 export type AnnouncementsResult = {
   items: Announcement[];
@@ -24,12 +30,16 @@ export type AnnouncementFeedResult = AnnouncementsResult & {
 export async function getLatestAnnouncements(limit = 3): Promise<AnnouncementsResult> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from('announcements')
-      .select(ANNOUNCEMENT_FIELDS)
-      .eq('published', true)
-      .order('published_at', { ascending: false })
-      .limit(limit);
+    const fetchLatest = (fields: string) =>
+      supabase
+        .from('announcements')
+        .select(fields)
+        .eq('published', true)
+        .order('published_at', { ascending: false })
+        .limit(limit);
+
+    let { data, error } = await fetchLatest(ANNOUNCEMENT_FIELDS);
+    if (missingImageColumn(error)) ({ data, error } = await fetchLatest(LEGACY_FIELDS));
 
     if (error) {
       return {
@@ -39,7 +49,7 @@ export async function getLatestAnnouncements(limit = 3): Promise<AnnouncementsRe
       };
     }
 
-    return { items: (data ?? []) as Announcement[], available: true };
+    return { items: (data ?? []) as unknown as Announcement[], available: true };
   } catch (error) {
     return {
       items: [],
@@ -67,21 +77,24 @@ export async function getAnnouncementFeed({
   try {
     const supabase = await createClient();
 
-    let query = supabase
-      .from('announcements')
-      .select(ANNOUNCEMENT_FIELDS)
-      .eq('published', true)
-      .order('published_at', { ascending: false })
-      .limit(limit);
+    const buildFeed = (fields: string) => {
+      let query = supabase
+        .from('announcements')
+        .select(fields)
+        .eq('published', true)
+        .order('published_at', { ascending: false })
+        .limit(limit);
+      if (category) query = query.eq('category', category);
+      return query;
+    };
 
-    if (category) {
-      query = query.eq('category', category);
-    }
-
-    const [feedResult, categoryResult] = await Promise.all([
-      query,
+    const [firstTry, categoryResult] = await Promise.all([
+      buildFeed(ANNOUNCEMENT_FIELDS),
       supabase.from('announcements').select('category').eq('published', true),
     ]);
+    const feedResult = missingImageColumn(firstTry.error)
+      ? await buildFeed(LEGACY_FIELDS)
+      : firstTry;
 
     if (feedResult.error) {
       return {
@@ -101,7 +114,7 @@ export async function getAnnouncementFeed({
     ).sort((a, b) => a.localeCompare(b));
 
     return {
-      items: (feedResult.data ?? []) as Announcement[],
+      items: (feedResult.data ?? []) as unknown as Announcement[],
       categories,
       available: true,
     };
